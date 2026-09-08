@@ -31,11 +31,24 @@ export default function WeekView() {
   const weekDates = getWeekDates(baseDate);
   const today = new Date().toISOString().split('T')[0];
 
-  useEffect(() => {
+  const load = () => {
     setBarbers(barbersApi.getAll());
     setServices(servicesApi.getAll());
     const all = weekDates.flatMap(d => appointmentsApi.getByDate(d));
     setAppointments(all);
+  };
+
+  useEffect(() => {
+    load();
+    const handleUpdate = () => load();
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('tlbc_storage_update', handleUpdate);
+    const interval = setInterval(load, 2000);
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('tlbc_storage_update', handleUpdate);
+      clearInterval(interval);
+    };
   }, [baseDate]);
 
   const changeWeek = (delta) => {

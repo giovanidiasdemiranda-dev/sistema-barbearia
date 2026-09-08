@@ -193,6 +193,9 @@ function getAll(key) {
 }
 function saveAll(key, data) {
   localStorage.setItem(key, JSON.stringify(data));
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('tlbc_storage_update', { detail: { key } }));
+  }
 }
 function genId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -338,6 +341,9 @@ export const appointmentsApi = {
         : a
     );
     saveAll(KEYS.APPOINTMENTS, appointments);
+  },
+  clearAll: () => {
+    saveAll(KEYS.APPOINTMENTS, []);
   },
 };
 

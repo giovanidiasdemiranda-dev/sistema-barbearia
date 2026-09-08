@@ -60,12 +60,12 @@ export default function AdminFinance() {
     return Number(localStorage.getItem('tlbc_monthly_goal')) || 18000;
   });
 
-  const [expandedDay, setExpandedDay] = useState(todayStr);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [isGoalsModalOpen, setIsGoalsModalOpen] = useState(false);
+  const [customWeeklyGoal, setCustomWeeklyGoal] = useState(weeklyGoal);
+  const [customMonthlyGoal, setCustomMonthlyGoal] = useState(monthlyGoal);
 
-  useEffect(() => {
-    setShops(shopsApi.getAll());
-    loadAllAppointments();
-  }, []);
+  const [expandedDay, setExpandedDay] = useState(todayStr);
 
   const loadAllAppointments = () => {
     setLoading(true);
@@ -73,7 +73,39 @@ export default function AdminFinance() {
       const all = appointmentsApi.getAll().filter(a => a.status !== 'cancelled');
       setAppointments(all);
       setLoading(false);
-    }, 250);
+    }, 150);
+  };
+
+  useEffect(() => {
+    setShops(shopsApi.getAll());
+    loadAllAppointments();
+
+    const handleUpdate = () => loadAllAppointments();
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('tlbc_storage_update', handleUpdate);
+    const interval = setInterval(loadAllAppointments, 2500);
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('tlbc_storage_update', handleUpdate);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const handleResetFinance = () => {
+    appointmentsApi.clearAll();
+    loadAllAppointments();
+    setIsResetConfirmOpen(false);
+  };
+
+  const handleSaveGoals = (e) => {
+    e.preventDefault();
+    const w = Number(customWeeklyGoal) || 0;
+    const m = Number(customMonthlyGoal) || 0;
+    setWeeklyGoal(w);
+    setMonthlyGoal(m);
+    localStorage.setItem('tlbc_weekly_goal', String(w));
+    localStorage.setItem('tlbc_monthly_goal', String(m));
+    setIsGoalsModalOpen(false);
   };
 
   // Filtered by shop
@@ -283,12 +315,36 @@ export default function AdminFinance() {
           </p>
         </div>
 
-        {/* Shop selector filter */}
-        <div className="flex items-center gap-2">
+        {/* Actions: Reset, Goals & Shop selector filter */}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={() => {
+              setCustomWeeklyGoal(weeklyGoal);
+              setCustomMonthlyGoal(monthlyGoal);
+              setIsGoalsModalOpen(true);
+            }}
+            className="px-3.5 py-2 rounded-xl bg-dark-800 hover:bg-dark-700 border border-dark-600 text-xs font-bold text-neutral-200 hover:text-white transition-all btn-press flex items-center gap-2 shadow-sm"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+            Editar Metas
+          </button>
+
+          <button
+            onClick={() => setIsResetConfirmOpen(true)}
+            className="px-3.5 py-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 text-xs font-bold text-red-300 hover:text-red-100 transition-all btn-press flex items-center gap-2 shadow-sm"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+            Zerar Financeiro
+          </button>
+
           <select
             value={selectedShopId}
             onChange={e => setSelectedShopId(e.target.value)}
-            className="w-full sm:w-auto h-11 px-4 rounded-xl bg-dark-800 border border-dark-600 text-sm font-semibold text-neutral-100 outline-none focus:border-brand-yellow cursor-pointer shadow-sm"
+            className="h-10 px-3.5 rounded-xl bg-dark-800 border border-dark-600 text-xs sm:text-sm font-semibold text-neutral-100 outline-none focus:border-brand-yellow cursor-pointer shadow-sm"
           >
             <option value="all">📍 Todas as Unidades</option>
             {shops.map(s => (
@@ -814,6 +870,120 @@ export default function AdminFinance() {
             </div>
           )}
         </>
+      )}
+      {/* ─── MODAL: CONFIRMAR ZERAR FINANCEIRO ────────────────────── */}
+      {isResetConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md bg-dark-900 border border-red-500/30 rounded-2xl p-6 shadow-2xl animate-scale-in">
+            <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mb-4">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+
+            <h3 className="text-xl font-black text-white mb-2">
+              Zerar todo o financeiro?
+            </h3>
+            <p className="text-sm text-neutral-300 mb-6 leading-relaxed">
+              Esta ação irá limpar os agendamentos e demonstrações fictícias. O seu faturamento voltará para <span className="text-brand-yellow font-bold">R$ 0,00</span>, permitindo que você inicie o controle com seus agendamentos e faturamento reais.
+            </p>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsResetConfirmOpen(false)}
+                className="flex-1 py-3 rounded-xl bg-dark-800 hover:bg-dark-700 text-neutral-300 font-bold text-sm transition-all btn-press"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleResetFinance}
+                className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-sm transition-all btn-press shadow-lg shadow-red-950"
+              >
+                Sim, Zerar Tudo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL: EDITAR METAS FINANCEIRAS ────────────────────────── */}
+      {isGoalsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <form onSubmit={handleSaveGoals} className="w-full max-w-md bg-dark-900 border border-dark-600 rounded-2xl p-6 shadow-2xl animate-scale-in">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-black text-white flex items-center gap-2">
+                <span>🎯</span> Definir Metas
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsGoalsModalOpen(false)}
+                className="text-neutral-400 hover:text-white p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-neutral-400 mb-5">
+              Defina suas metas de faturamento para calcular o progresso da sua barbearia:
+            </p>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wider mb-2">
+                  Meta Semanal (R$)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500 font-bold text-sm">R$</span>
+                  <input
+                    type="number"
+                    step="50"
+                    min="0"
+                    value={customWeeklyGoal}
+                    onChange={(e) => setCustomWeeklyGoal(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-dark-800 border border-dark-600 text-white font-bold outline-none focus:border-brand-yellow text-sm"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wider mb-2">
+                  Meta Mensal (R$)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500 font-bold text-sm">R$</span>
+                  <input
+                    type="number"
+                    step="100"
+                    min="0"
+                    value={customMonthlyGoal}
+                    onChange={(e) => setCustomMonthlyGoal(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-dark-800 border border-dark-600 text-white font-bold outline-none focus:border-brand-yellow text-sm"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsGoalsModalOpen(false)}
+                className="flex-1 py-3 rounded-xl bg-dark-800 hover:bg-dark-700 text-neutral-300 font-bold text-sm transition-all btn-press"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="flex-1 py-3 rounded-xl bg-brand-yellow hover:bg-yellow-400 text-dark-950 font-black text-sm transition-all btn-press shadow-lg shadow-yellow-950"
+              >
+                Salvar Metas
+              </button>
+            </div>
+          </form>
+        </div>
       )}
     </div>
   );

@@ -26,7 +26,18 @@ export default function AppointmentList() {
     setAppointments(appointmentsApi.getAll());
   };
 
-  useEffect(load, []);
+  useEffect(() => {
+    load();
+    const handleUpdate = () => load();
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('tlbc_storage_update', handleUpdate);
+    const interval = setInterval(load, 2000);
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('tlbc_storage_update', handleUpdate);
+      clearInterval(interval);
+    };
+  }, []);
 
   const getBarber = (id) => barbers.find(b => b.id === id);
   const getService = (id) => services.find(s => s.id === id);

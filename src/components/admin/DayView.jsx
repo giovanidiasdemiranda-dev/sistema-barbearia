@@ -26,7 +26,18 @@ export default function DayView() {
     setAppointments(appts);
   };
 
-  useEffect(load, [date]);
+  useEffect(() => {
+    load();
+    const handleUpdate = () => load();
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('tlbc_storage_update', handleUpdate);
+    const interval = setInterval(load, 2000);
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('tlbc_storage_update', handleUpdate);
+      clearInterval(interval);
+    };
+  }, [date]);
 
   const filtered = selectedBarberId === 'all'
     ? appointments

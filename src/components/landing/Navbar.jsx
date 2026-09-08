@@ -28,13 +28,13 @@ export default function Navbar({ onOpenBooking }) {
           : 'bg-gradient-to-b from-dark-950/90 via-dark-950/50 to-transparent py-5'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 flex items-center justify-between gap-3">
         {/* Logo */}
-        <a href="#" className="flex items-center gap-3 group">
+        <a href="#" className="flex items-center gap-2 group shrink-0">
           <img
             src="/logo.png"
             alt="The Latin Barber's Club"
-            className="h-12 md:h-14 w-auto object-contain drop-shadow-[0_0_20px_rgba(252,209,22,0.3)] transition-transform duration-300 group-hover:scale-105"
+            className="h-10 sm:h-12 md:h-14 w-auto object-contain drop-shadow-[0_0_20px_rgba(252,209,22,0.3)] transition-transform duration-300 group-hover:scale-105"
           />
         </a>
 
@@ -52,12 +52,13 @@ export default function Navbar({ onOpenBooking }) {
         </nav>
 
         {/* CTA Button & Mobile Toggle */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <button
             onClick={onOpenBooking}
-            className="relative inline-flex items-center justify-center px-5 py-2.5 md:px-6 md:py-2.5 bg-brand-yellow text-dark-950 font-bold text-sm uppercase tracking-wider rounded-xl transition-all duration-300 hover:scale-105 hover:bg-yellow-400 shadow-[0_0_25px_rgba(252,209,22,0.4)] btn-press"
+            className="relative inline-flex items-center justify-center px-3.5 py-2 sm:px-5 sm:py-2.5 md:px-6 md:py-2.5 bg-brand-yellow text-dark-950 font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl transition-all duration-300 hover:scale-105 hover:bg-yellow-400 shadow-[0_0_20px_rgba(252,209,22,0.3)] btn-press whitespace-nowrap"
           >
-            Agendar horário
+            <span className="hidden sm:inline">Agendar horário</span>
+            <span className="sm:hidden">Agendar</span>
           </button>
 
           {/* Mobile Menu Button */}
