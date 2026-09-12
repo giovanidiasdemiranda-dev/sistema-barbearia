@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { appointmentsApi, barbersApi, servicesApi, formatDate, formatPrice, formatPhone } from '../../lib/storage';
 import Button from '../ui/Button';
 import { useToast } from '../ui/Toast';
+import ReviewModal from '../ui/ReviewModal';
 
 const STATUS_MAP = {
   scheduled: { label: 'Agendado', className: 'bg-brand-yellow/10 text-brand-yellow border-brand-yellow/20' },
@@ -19,6 +20,7 @@ export default function AppointmentList() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterDate, setFilterDate] = useState('');
   const [showCount, setShowCount] = useState(20);
+  const [reviewAppt, setReviewAppt] = useState(null);
 
   const load = () => {
     setBarbers(barbersApi.getAll());
@@ -67,9 +69,24 @@ export default function AppointmentList() {
     load();
   };
 
-  const handleComplete = (id) => {
-    appointmentsApi.update(id, { status: 'completed' });
-    addToast('Marcado como concluído', 'success');
+  const handleCompleteClick = (appt) => {
+    setReviewAppt(appt);
+  };
+
+  const handleReviewSubmit = ({ rating, text }) => {
+    const barber = getBarber(reviewAppt.barber_id);
+    reviewsApi.create({
+      name: reviewAppt.client_name,
+      role: 'Cliente verificado',
+      text: text,
+      rating: rating,
+      barber_name: barber?.name,
+      appointment_id: reviewAppt.id
+    });
+
+    appointmentsApi.update(reviewAppt.id, { status: 'completed' });
+    addToast('Atendimento concluído e avaliação salva!', 'success');
+    setReviewAppt(null);
     load();
   };
 
@@ -154,7 +171,7 @@ export default function AppointmentList() {
                   </div>
                   {a.status === 'scheduled' && (
                     <div className="flex gap-2 mt-3 pt-3 border-t border-dark-600">
-                      <button onClick={() => handleComplete(a.id)} className="flex-1 h-8 rounded-lg bg-green-500/10 text-green-400 border border-green-500/20 text-xs font-semibold hover:bg-green-500/20 transition-all btn-press">
+                      <button onClick={() => handleCompleteClick(a)} className="flex-1 h-8 rounded-lg bg-green-500/10 text-green-400 border border-green-500/20 text-xs font-semibold hover:bg-green-500/20 transition-all btn-press">
                         ✓ Concluído
                       </button>
                       <button onClick={() => handleCancel(a.id)} className="flex-1 h-8 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-semibold hover:bg-red-500/20 transition-all btn-press">
@@ -174,6 +191,17 @@ export default function AppointmentList() {
             </div>
           )}
         </>
+      )}
+
+      {/* Modal de Avaliação Hand-off */}
+      {reviewAppt && (
+        <ReviewModal
+          isOpen={!!reviewAppt}
+          onClose={() => setReviewAppt(null)}
+          onSubmit={handleReviewSubmit}
+          clientName={reviewAppt.client_name}
+          barberName={getBarber(reviewAppt.barber_id)?.name}
+        />
       )}
     </div>
   );

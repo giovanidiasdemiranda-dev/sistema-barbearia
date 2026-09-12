@@ -2,33 +2,44 @@ import React from 'react';
 import { shopsApi } from '../../lib/storage';
 
 export default function UnitsSection({ onBookShop }) {
-  const shops = shopsApi.getActive();
+  // Sort alphabetically so "Costa e Silva" appears before "Mario Quintana"
+  const shops = [...shopsApi.getActive()].sort((a, b) => a.name.localeCompare(b.name));
 
   // Imagery tailored for each unit
   const unitDetails = {
     'shop-1': {
-      image: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      image: '/img_branch.jpg', // Agora img_branch.jpg na Sede Mario Quintana
       tag: 'Sede Principal',
       flagColor: 'bg-brand-yellow',
       borderColor: 'border-brand-yellow/30',
       hours: 'Seg a Sáb: 09h00 às 20h00',
-      phone: '(11) 98765-4321',
+      phone: '(51) 8165-6799',
     },
     'shop-2': {
-      image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      image: '/img_hq.jpg', // Sede Costa e Silva agora tem a img_hq.jpg
       tag: 'Filial Contemporânea',
       flagColor: 'bg-brand-blue',
       borderColor: 'border-brand-blue/30',
-      hours: 'Seg a Sáb: 09h00 às 19h00',
-      phone: '(11) 97654-3210',
+      hours: 'Seg a Sáb: 09h00 às 20h00',
+      phone: '(51) 8165-6799',
     },
   };
 
+  const isShopOpen = () => {
+    const now = new Date();
+    const day = now.getDay();
+    const hour = now.getHours();
+    if (day === 0) return false; // Fechado domingo
+    if (hour >= 9 && hour < 20) return true;
+    return false;
+  };
+
+  const isOpen = isShopOpen();
+
   return (
     <section id="unidades" className="relative py-24 md:py-32 bg-dark-900 border-t border-white/5 overflow-hidden">
-      {/* Background glow */}
-      <div className="absolute -bottom-20 left-1/3 w-80 h-80 rounded-full bg-brand-red/10 blur-[140px] pointer-events-none" />
-
+      {/* Cinematic Animated Atmosphere */}
+      
       <div className="max-w-7xl mx-auto px-6 md:px-12 relative z-10">
         
         {/* Section Header */}
@@ -73,10 +84,17 @@ export default function UnitsSection({ onBookShop }) {
                     <span className={`w-2 h-2 rounded-full ${detail.flagColor}`} />
                     {detail.tag}
                   </div>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Aberto Hoje
-                  </span>
+                  {isOpen ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Aberto Hoje
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                      Fechado
+                    </span>
+                  )}
                 </div>
 
                 {/* Bottom Content Card — Exactly replicating Behance styling */}

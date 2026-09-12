@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { appointmentsApi, barbersApi, servicesApi, formatDate, formatPrice } from '../../lib/storage';
+import { appointmentsApi, barbersApi, servicesApi, reviewsApi, formatDate, formatPrice } from '../../lib/storage';
 import Button from '../ui/Button';
 import { useToast } from '../ui/Toast';
+import ReviewModal from '../ui/ReviewModal';
 
 const STATUS_MAP = {
   scheduled: { label: 'Agendado', className: 'bg-brand-yellow/10 text-brand-yellow border border-brand-yellow/20' },
@@ -16,6 +17,7 @@ export default function DayView() {
   const [barbers, setBarbers] = useState([]);
   const [services, setServices] = useState([]);
   const [selectedBarberId, setSelectedBarberId] = useState('all');
+  const [reviewAppt, setReviewAppt] = useState(null);
 
   const load = () => {
     const allBarbers = barbersApi.getAll();
@@ -55,9 +57,27 @@ export default function DayView() {
     load();
   };
 
-  const handleComplete = (id) => {
-    appointmentsApi.update(id, { status: 'completed' });
-    addToast('Marcado como concluído', 'success');
+  const handleCompleteClick = (appt) => {
+    setReviewAppt(appt);
+  };
+
+  const handleReviewSubmit = ({ rating, text }) => {
+    // 1. Create the review
+    const barber = getBarber(reviewAppt.barber_id);
+    reviewsApi.create({
+      name: reviewAppt.client_name,
+      role: 'Cliente verificado', // Could be dynamic, but let's default for now
+      text: text,
+      rating: rating,
+      barber_name: barber?.name,
+      appointment_id: reviewAppt.id
+    });
+
+    // 2. Mark appointment as completed
+    appointmentsApi.update(reviewAppt.id, { status: 'completed' });
+    
+    addToast('Atendimento concluído e avaliação salva!', 'success');
+    setReviewAppt(null);
     load();
   };
 
@@ -161,7 +181,7 @@ export default function DayView() {
                 {a.status === 'scheduled' && (
                   <div className="flex gap-2 pt-3 border-t border-dark-600">
                     <button
-                      onClick={() => handleComplete(a.id)}
+                      onClick={() => handleCompleteClick(a)}
                       className="flex-1 h-9 rounded-lg bg-green-500/10 text-green-400 border border-green-500/20 text-xs font-semibold hover:bg-green-500/20 transition-all btn-press"
                     >
                       ✓ Concluído
@@ -178,6 +198,17 @@ export default function DayView() {
             );
           })}
         </div>
+      )}
+
+      {/* Modal de Avaliação */}
+      {reviewAppt && (
+        <ReviewModal
+          isOpen={!!reviewAppt}
+          onClose={() => setReviewAppt(null)}
+          onSubmit={handleReviewSubmit}
+          clientName={reviewAppt.client_name}
+          barberName={getBarber(reviewAppt.barber_id)?.name}
+        />
       )}
     </div>
   );

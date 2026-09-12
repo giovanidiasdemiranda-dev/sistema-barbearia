@@ -4,10 +4,11 @@ import { ToastProvider } from './components/ui/Toast';
 import BookingPage from './pages/BookingPage';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
-import { initStorage } from './lib/storage';
+import { initStorage, initFirebaseSync } from './lib/storage';
 
 // Initialize localStorage with seed data
 initStorage();
+initFirebaseSync();
 
 export default function App() {
   return (
@@ -34,3 +35,4 @@ function AdminRoute() {
   if (!isAuth) return <Navigate to="/admin/login" replace />;
   return <AdminDashboard />;
 }
+

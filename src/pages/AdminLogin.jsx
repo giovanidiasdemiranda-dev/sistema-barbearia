@@ -17,7 +17,11 @@ export default function AdminLogin() {
     await new Promise(r => setTimeout(r, 400));
     const savedPassword = localStorage.getItem('tlbc_admin_password') || '1234';
     if (password === savedPassword || password === 'admin123' || password === '1234') {
-      localStorage.setItem('tlbc_admin_auth', 'true');
+      try {
+        localStorage.setItem('tlbc_admin_auth', 'true');
+      } catch (e) {
+        console.error('Error saving auth to localStorage', e);
+      }
       navigate('/admin');
     } else {
       setError('Senha incorreta. Tente novamente.');

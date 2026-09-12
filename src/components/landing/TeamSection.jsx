@@ -1,11 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { barbersApi } from '../../lib/storage';
 
 export default function TeamSection({ onBookBarber }) {
-  const barbers = barbersApi.getAll();
+  const [barbers, setBarbers] = useState(barbersApi.getAll());
+
+  useEffect(() => {
+    const handleUpdate = (e) => {
+      if (e.detail.key === 'tlbc_barbers') {
+        setBarbers(barbersApi.getAll());
+      }
+    };
+    window.addEventListener('tlbc_storage_update', handleUpdate);
+    return () => window.removeEventListener('tlbc_storage_update', handleUpdate);
+  }, []);
 
   return (
     <section id="equipe" className="relative py-24 md:py-32 bg-dark-950 border-t border-white/5 overflow-hidden">
+      {/* Cinematic Animated Atmosphere */}
+      
       <div className="max-w-7xl mx-auto px-6 md:px-12 relative z-10">
         
         {/* Section Header */}

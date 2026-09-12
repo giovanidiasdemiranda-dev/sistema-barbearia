@@ -3,7 +3,7 @@ import React from 'react';
 export default function WhatsAppButton() {
   return (
     <a
-      href="https://wa.me/5511987654321?text=Ol%C3%A1!%20Gostaria%20de%20tirar%20uma%20d%C3%BAvida%20sobre%20o%20The%20Latin%20Barber's%20Club."
+      href="https://wa.me/555181656799?text=Ol%C3%A1!%20Gostaria%20de%20agendar%20um%20hor%C3%A1rio%20no%20The%20Latin%20Barber's%20Club."
       target="_blank"
       rel="noreferrer"
       aria-label="Fale conosco no WhatsApp"

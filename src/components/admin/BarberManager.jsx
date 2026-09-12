@@ -62,6 +62,67 @@ export default function BarberManager() {
     load();
   };
 
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      addToast('Por favor, selecione uma imagem válida.', 'error');
+      e.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onerror = () => {
+      addToast('Erro ao ler a imagem.', 'error');
+      e.target.value = '';
+    };
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onerror = () => {
+        addToast('Erro ao carregar a imagem. Tente outro formato.', 'error');
+      };
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 256;
+          const MAX_HEIGHT = 256;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round((width * MAX_HEIGHT) / height);
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Compress to JPEG with 0.8 quality
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          setForm((p) => ({ ...p, photo_url: dataUrl }));
+        } catch (err) {
+          console.error(err);
+          addToast('Erro ao processar a imagem.', 'error');
+        }
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+    
+    // Clear input so selecting the same file again triggers onChange
+    e.target.value = '';
+  };
+
   const f = (field) => (e) => { setForm(p => ({ ...p, [field]: e.target.value })); if (errors[field]) setErrors(p => ({ ...p, [field]: undefined })); };
 
   return (
@@ -83,10 +144,14 @@ export default function BarberManager() {
             <div key={b.id} className="bg-dark-800 rounded-2xl border border-dark-600 p-4 flex items-center gap-4">
               {/* Avatar */}
               <div
-                className="w-12 h-12 rounded-full flex items-center justify-center text-base font-bold text-dark-900 shrink-0"
+                className="w-12 h-12 rounded-full flex items-center justify-center text-base font-bold text-dark-900 shrink-0 overflow-hidden"
                 style={{ backgroundColor: b.color || '#F5C518' }}
               >
-                {b.initials || b.name.slice(0,2).toUpperCase()}
+                {b.photo_url ? (
+                  <img src={b.photo_url} alt={b.name} className="w-full h-full object-cover" />
+                ) : (
+                  b.initials || b.name.slice(0,2).toUpperCase()
+                )}
               </div>
               {/* Info */}
               <div className="flex-1 min-w-0">
@@ -126,8 +191,21 @@ export default function BarberManager() {
           <Field label="Bio / Especialidade">
             <textarea value={form.bio} onChange={f('bio')} placeholder="Ex: Especialista em fade..." rows={2} className={`${inputCls()} resize-none`} />
           </Field>
-          <Field label="URL da foto (opcional)">
-            <input type="url" value={form.photo_url} onChange={f('photo_url')} placeholder="https://..." className={inputCls()} />
+          <Field label="Foto do Barbeiro (Upload)">
+            <div className="flex gap-4 items-center">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-dark-900 shrink-0 overflow-hidden border-2 border-white/10" style={{ backgroundColor: form.color || '#F5C518' }}>
+                {form.photo_url ? <img src={form.photo_url} alt="Preview" className="w-full h-full object-cover" /> : (form.name ? form.name.slice(0,2).toUpperCase() : '??')}
+              </div>
+              <div className="flex-1">
+                <input
+                  type="file"
+                  accept="image/jpeg, image/png, image/webp"
+                  onChange={handlePhotoUpload}
+                  className="block w-full text-sm text-neutral-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-yellow/10 file:text-brand-yellow hover:file:bg-brand-yellow/20 cursor-pointer"
+                />
+                <p className="text-xs text-neutral-500 mt-2">Escolha do seu celular ou PC.</p>
+              </div>
+            </div>
           </Field>
           <Field label="Cor do avatar">
             <div className="flex gap-2 flex-wrap">

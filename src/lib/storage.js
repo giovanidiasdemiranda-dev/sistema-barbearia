@@ -8,21 +8,22 @@ const KEYS = {
   WORKING_HOURS: 'tlbc_working_hours',
   BLOCKED_SLOTS: 'tlbc_blocked_slots',
   SHOPS: 'tlbc_shops',
+  REVIEWS: 'tlbc_reviews',
 };
 
 // ─── Seed Data ───────────────────────────────────────────────────
 const seedShops = [
-  { id: 'shop-1', name: 'Sede Colômbia', address: 'Rua Principal, 123', is_active: true },
-  { id: 'shop-2', name: 'Filial Central', address: 'Av. Libertador, 456', is_active: true },
+  { id: 'shop-1', name: 'Sede Mario Quintana', address: 'Estrada Martín Félix Berta 2392', is_active: true },
+  { id: 'shop-2', name: 'Sede Costa e Silva', address: 'Av. Dante Ângelo Pilla 206', is_active: true },
 ];
 const seedBarbers = [
   {
     id: 'barber-1',
     shop_id: 'shop-1',
-    name: 'Carlos Mendez',
-    bio: 'Especialista em cortes clássicos e fade. 8 anos de experiência.',
+    name: 'Michael Rozo',
+    bio: 'Mestre em degradê e barboterapia.',
     photo_url: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-4.0.3&auto=format&fit=crop&w=256&q=80',
-    initials: 'CM',
+    initials: 'MR',
     color: '#FCD116',
     is_active: true,
     created_at: new Date().toISOString(),
@@ -30,10 +31,10 @@ const seedBarbers = [
   {
     id: 'barber-2',
     shop_id: 'shop-1',
-    name: 'Rafael Silva',
-    bio: 'Expert em barba e design de rosto. Mestre do razor.',
+    name: 'René Brito',
+    bio: 'Especialista em cortes clássicos e design de barba.',
     photo_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=256&q=80',
-    initials: 'RS',
+    initials: 'RB',
     color: '#003893',
     is_active: true,
     created_at: new Date().toISOString(),
@@ -41,36 +42,55 @@ const seedBarbers = [
   {
     id: 'barber-3',
     shop_id: 'shop-2',
-    name: 'Diego Rojas',
-    bio: 'Cortes modernos e tendências. Do degradê ao skin fade.',
+    name: 'Arley Munhoz',
+    bio: 'Especialista em Nano pigmentação de barba.',
     photo_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=256&q=80',
-    initials: 'DR',
+    initials: 'AM',
     color: '#CE1126',
+    is_active: true,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'barber-4',
+    shop_id: 'shop-2',
+    name: 'Guillerme',
+    bio: 'Cortes modernos e tendências. Do degradê ao nevou.',
+    photo_url: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?ixlib=rb-4.0.3&auto=format&fit=crop&w=256&q=80',
+    initials: 'G',
+    color: '#4CAF50',
     is_active: true,
     created_at: new Date().toISOString(),
   },
 ];
 
 const seedServices = [
-  { id: 'svc-1', name: 'Corte Clássico', description: 'Corte tradicional com tesoura e pente', price: 45, duration_minutes: 30, is_active: true },
-  { id: 'svc-2', name: 'Corte + Barba', description: 'Corte completo com modelagem de barba', price: 75, duration_minutes: 60, is_active: true },
-  { id: 'svc-3', name: 'Barba Completa', description: 'Modelagem, hidratação e acabamento', price: 40, duration_minutes: 30, is_active: true },
-  { id: 'svc-4', name: 'Skin Fade', description: 'Degradê perfeito na máquina zero a zero', price: 55, duration_minutes: 45, is_active: true },
-  { id: 'svc-5', name: 'Combo Premium', description: 'Corte + barba + sobrancelha + hidratação', price: 100, duration_minutes: 90, is_active: true },
-  { id: 'svc-6', name: 'Sobrancelha', description: 'Design e alinhamento de sobrancelha', price: 20, duration_minutes: 15, is_active: true },
-  { id: 'svc-7', name: 'Corte Infantil', description: 'Corte especial para crianças até 12 anos', price: 35, duration_minutes: 30, is_active: true },
-  { id: 'svc-8', name: 'Pigmentação', description: 'Coloração e disfarce de grisalhos', price: 60, duration_minutes: 45, is_active: true },
+  { id: 'svc-1', name: 'Corte Degradê', description: 'Corte degradê na máquina', price: 35, duration_minutes: 45, is_active: true },
+  { id: 'svc-2', name: 'Barba', description: 'Design e modelagem de barba', price: 25, duration_minutes: 30, is_active: true },
+  { id: 'svc-3', name: 'Barboterapia', description: 'Ritual completo com toalha quente', price: 35, duration_minutes: 45, is_active: true },
+  { id: 'svc-4', name: 'Corte Máquina', description: 'Corte simples na máquina', price: 25, duration_minutes: 30, is_active: true },
+  { id: 'svc-5', name: 'Sobrancelhas', description: 'Design e alinhamento', price: 10, duration_minutes: 15, is_active: true },
+  { id: 'svc-6', name: 'Limpeza Facial Simples', description: 'Limpeza e hidratação básica', price: 10, duration_minutes: 20, is_active: true },
+  { id: 'svc-7', name: 'Limpeza Facial Profunda', description: 'Limpeza completa com extração', price: 40, duration_minutes: 60, is_active: true },
+  { id: 'svc-8', name: 'Corte + Barba + Sobrancelhas', description: 'O combo completo do homem moderno', price: 60, duration_minutes: 90, is_active: true },
+  { id: 'svc-9', name: 'Corte + Sobrancelhas', description: 'Corte e alinhamento de sobrancelhas', price: 40, duration_minutes: 60, is_active: true },
+  { id: 'svc-10', name: 'Barba + Sobrancelhas', description: 'Design de barba e sobrancelhas', price: 30, duration_minutes: 45, is_active: true },
+  { id: 'svc-11', name: 'Pigmentação Cabelo', description: 'Coloração para cabelos masculinos', price: 15, duration_minutes: 30, is_active: true },
+  { id: 'svc-12', name: 'Pigm Barba', description: 'Coloração e preenchimento de barba', price: 15, duration_minutes: 30, is_active: true },
+  { id: 'svc-13', name: 'Pigmentação Cavanhaque', description: 'Coloração localizada no cavanhaque', price: 10, duration_minutes: 15, is_active: true },
+  { id: 'svc-14', name: 'Luzes', description: 'Luzes no cabelo masculino', price: 80, duration_minutes: 90, is_active: true },
+  { id: 'svc-15', name: 'Nevou', description: 'Platinado global masculino', price: 110, duration_minutes: 120, is_active: true },
+  { id: 'svc-16', name: 'Nano pigmentação barba', description: 'Feito exclusivamente pelo barbeiro Arley', price: 250, duration_minutes: 120, is_active: true },
 ];
 
 // Working hours: 0=Sunday, 1=Monday, ..., 6=Saturday
 const generateWorkingHours = (barberId) => [
   { id: `wh-${barberId}-0`, barber_id: barberId, day_of_week: 0, start_time: null, end_time: null, is_off: true },
-  { id: `wh-${barberId}-1`, barber_id: barberId, day_of_week: 1, start_time: '09:00', end_time: '19:00', is_off: false },
-  { id: `wh-${barberId}-2`, barber_id: barberId, day_of_week: 2, start_time: '09:00', end_time: '19:00', is_off: false },
-  { id: `wh-${barberId}-3`, barber_id: barberId, day_of_week: 3, start_time: '09:00', end_time: '19:00', is_off: false },
-  { id: `wh-${barberId}-4`, barber_id: barberId, day_of_week: 4, start_time: '09:00', end_time: '19:00', is_off: false },
+  { id: `wh-${barberId}-1`, barber_id: barberId, day_of_week: 1, start_time: '09:00', end_time: '20:00', is_off: false },
+  { id: `wh-${barberId}-2`, barber_id: barberId, day_of_week: 2, start_time: '09:00', end_time: '20:00', is_off: false },
+  { id: `wh-${barberId}-3`, barber_id: barberId, day_of_week: 3, start_time: '09:00', end_time: '20:00', is_off: false },
+  { id: `wh-${barberId}-4`, barber_id: barberId, day_of_week: 4, start_time: '09:00', end_time: '20:00', is_off: false },
   { id: `wh-${barberId}-5`, barber_id: barberId, day_of_week: 5, start_time: '09:00', end_time: '20:00', is_off: false },
-  { id: `wh-${barberId}-6`, barber_id: barberId, day_of_week: 6, start_time: '09:00', end_time: '17:00', is_off: false },
+  { id: `wh-${barberId}-6`, barber_id: barberId, day_of_week: 6, start_time: '09:00', end_time: '20:00', is_off: false },
 ];
 
 // ─── Seed Appointments ──────────────────────────────────────────
@@ -150,49 +170,97 @@ const buildSeedAppointments = () => seedAppointmentsData.map((a, i) => ({
 }));
 
 // ─── Init / Seed ─────────────────────────────────────────────────
-const VERSION_KEY = 'tlbc_version_4';
+const memoryCache = {};
+
+function safeSet(key, data) {
+  memoryCache[key] = data;
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch(e) {}
+}
+
+const VERSION_KEY = 'tlbc_version_5';
 export function initStorage() {
-  if (!localStorage.getItem(VERSION_KEY)) {
-    localStorage.clear();
-    localStorage.setItem(VERSION_KEY, 'true');
-    localStorage.setItem(KEYS.SHOPS, JSON.stringify(seedShops));
-    localStorage.setItem(KEYS.BARBERS, JSON.stringify(seedBarbers));
-    localStorage.setItem(KEYS.SERVICES, JSON.stringify(seedServices));
-    const hours = seedBarbers.flatMap(b => generateWorkingHours(b.id));
-    localStorage.setItem(KEYS.WORKING_HOURS, JSON.stringify(hours));
-    localStorage.setItem(KEYS.APPOINTMENTS, JSON.stringify(buildSeedAppointments()));
-    localStorage.setItem(KEYS.BLOCKED_SLOTS, JSON.stringify([]));
+  try {
+    if (!localStorage.getItem(VERSION_KEY)) {
+      localStorage.clear();
+      localStorage.setItem(VERSION_KEY, 'true');
+      safeSet(KEYS.SHOPS, seedShops);
+      safeSet(KEYS.BARBERS, seedBarbers);
+      safeSet(KEYS.SERVICES, seedServices);
+      const hours = seedBarbers.flatMap(b => generateWorkingHours(b.id));
+      safeSet(KEYS.WORKING_HOURS, hours);
+      safeSet(KEYS.APPOINTMENTS, buildSeedAppointments());
+      safeSet(KEYS.BLOCKED_SLOTS, []);
+      safeSet(KEYS.REVIEWS, []);
+      return;
+    }
+  } catch(e) {
+    // Se localStorage estiver totalmente bloqueado (Modo Anônimo Safari)
+    safeSet(KEYS.SHOPS, seedShops);
+    safeSet(KEYS.BARBERS, seedBarbers);
+    safeSet(KEYS.SERVICES, seedServices);
+    safeSet(KEYS.WORKING_HOURS, seedBarbers.flatMap(b => generateWorkingHours(b.id)));
+    safeSet(KEYS.APPOINTMENTS, buildSeedAppointments());
+    safeSet(KEYS.BLOCKED_SLOTS, []);
+    safeSet(KEYS.REVIEWS, []);
     return;
   }
 
-  if (!localStorage.getItem(KEYS.SHOPS)) {
-    localStorage.setItem(KEYS.SHOPS, JSON.stringify(seedShops));
-  }
-  if (!localStorage.getItem(KEYS.BARBERS)) {
-    localStorage.setItem(KEYS.BARBERS, JSON.stringify(seedBarbers));
-  }
-  if (!localStorage.getItem(KEYS.SERVICES)) {
-    localStorage.setItem(KEYS.SERVICES, JSON.stringify(seedServices));
-  }
-  if (!localStorage.getItem(KEYS.WORKING_HOURS)) {
-    const hours = seedBarbers.flatMap(b => generateWorkingHours(b.id));
-    localStorage.setItem(KEYS.WORKING_HOURS, JSON.stringify(hours));
-  }
-  if (!localStorage.getItem(KEYS.APPOINTMENTS)) {
-    localStorage.setItem(KEYS.APPOINTMENTS, JSON.stringify([]));
-  }
-  if (!localStorage.getItem(KEYS.BLOCKED_SLOTS)) {
-    localStorage.setItem(KEYS.BLOCKED_SLOTS, JSON.stringify([]));
-  }
+  try {
+    if (!localStorage.getItem(KEYS.SHOPS)) safeSet(KEYS.SHOPS, seedShops);
+    if (!localStorage.getItem(KEYS.BARBERS)) safeSet(KEYS.BARBERS, seedBarbers);
+    if (!localStorage.getItem(KEYS.SERVICES)) safeSet(KEYS.SERVICES, seedServices);
+    if (!localStorage.getItem(KEYS.WORKING_HOURS)) {
+      safeSet(KEYS.WORKING_HOURS, seedBarbers.flatMap(b => generateWorkingHours(b.id)));
+    }
+    if (!localStorage.getItem(KEYS.APPOINTMENTS)) safeSet(KEYS.APPOINTMENTS, []);
+    if (!localStorage.getItem(KEYS.BLOCKED_SLOTS)) safeSet(KEYS.BLOCKED_SLOTS, []);
+    if (!localStorage.getItem(KEYS.REVIEWS)) safeSet(KEYS.REVIEWS, []);
+  } catch(e) {}
 }
 
 // ─── Generic helpers ─────────────────────────────────────────────
 function getAll(key) {
-  try { return JSON.parse(localStorage.getItem(key)) || []; }
-  catch { return []; }
+  try {
+    const val = localStorage.getItem(key);
+    if (val !== null) return JSON.parse(val);
+    return memoryCache[key] || [];
+  } catch {
+    return memoryCache[key] || [];
+  }
 }
+import { db } from './firebase';
+import { doc, setDoc, onSnapshot, collection } from 'firebase/firestore';
+
+export function initFirebaseSync() {
+  const keys = Object.values(KEYS);
+  keys.forEach(key => {
+    onSnapshot(
+      doc(db, 'app_data', key),
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data().items || [];
+          safeSet(key, data);
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('tlbc_storage_update', { detail: { key } }));
+          }
+        }
+      },
+      (error) => {
+        console.error('Firebase sync error for', key, error);
+      }
+    );
+  });
+}
+
 function saveAll(key, data) {
-  localStorage.setItem(key, JSON.stringify(data));
+  safeSet(key, data);
+
+  setDoc(doc(db, 'app_data', key), { items: data }).catch((error) => {
+    console.error('Firebase save error:', error);
+  });
+
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('tlbc_storage_update', { detail: { key } }));
   }
@@ -436,3 +504,19 @@ export function formatPhone(value) {
   if (digits.length <= 11) return `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
   return value;
 }
+
+// ─── REVIEWS ─────────────────────────────────────────────────────
+export const reviewsApi = {
+  getAll: () => getAll(KEYS.REVIEWS).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)),
+  create: (data) => {
+    const reviews = getAll(KEYS.REVIEWS);
+    const newReview = { id: genId(), created_at: new Date().toISOString(), ...data };
+    reviews.push(newReview);
+    saveAll(KEYS.REVIEWS, reviews);
+    return newReview;
+  },
+  delete: (id) => saveAll(KEYS.REVIEWS, getAll(KEYS.REVIEWS).filter(r => r.id !== id)),
+  clearAll: () => saveAll(KEYS.REVIEWS, []),
+};
+
+

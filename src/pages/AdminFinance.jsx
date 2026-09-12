@@ -67,23 +67,22 @@ export default function AdminFinance() {
 
   const [expandedDay, setExpandedDay] = useState(todayStr);
 
-  const loadAllAppointments = () => {
-    setLoading(true);
-    setTimeout(() => {
-      const all = appointmentsApi.getAll().filter(a => a.status !== 'cancelled');
-      setAppointments(all);
-      setLoading(false);
-    }, 150);
+  const loadAllAppointments = (isInitial = false) => {
+    if (isInitial) setLoading(true);
+    const all = appointmentsApi.getAll().filter(a => a.status !== 'cancelled');
+    setAppointments(all);
+    if (isInitial) setLoading(false);
   };
 
   useEffect(() => {
     setShops(shopsApi.getAll());
-    loadAllAppointments();
+    loadAllAppointments(true);
 
-    const handleUpdate = () => loadAllAppointments();
+    const handleUpdate = () => loadAllAppointments(false);
     window.addEventListener('storage', handleUpdate);
     window.addEventListener('tlbc_storage_update', handleUpdate);
-    const interval = setInterval(loadAllAppointments, 2500);
+    // Interval fallback removed/reduced to avoid any UX issues, event listeners handle realtime
+    const interval = setInterval(() => loadAllAppointments(false), 10000);
     return () => {
       window.removeEventListener('storage', handleUpdate);
       window.removeEventListener('tlbc_storage_update', handleUpdate);
@@ -103,8 +102,12 @@ export default function AdminFinance() {
     const m = Number(customMonthlyGoal) || 0;
     setWeeklyGoal(w);
     setMonthlyGoal(m);
-    localStorage.setItem('tlbc_weekly_goal', String(w));
-    localStorage.setItem('tlbc_monthly_goal', String(m));
+    try {
+      localStorage.setItem('tlbc_weekly_goal', String(w));
+      localStorage.setItem('tlbc_monthly_goal', String(m));
+    } catch (e) {
+      console.error('Error saving goals to localStorage', e);
+    }
     setIsGoalsModalOpen(false);
   };
 

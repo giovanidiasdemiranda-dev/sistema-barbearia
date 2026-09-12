@@ -11,7 +11,7 @@ export default function Footer({ onOpenBooking }) {
         <div className="w-1/4 bg-brand-red" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 md:px-12">
+      <div className="max-w-7xl mx-auto px-6 md:px-12 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
           
           {/* Col 1: Brand & Bio */}
@@ -26,7 +26,7 @@ export default function Footer({ onOpenBooking }) {
             </p>
             <div className="flex items-center gap-3 pt-2">
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/thelatinbarbersclub/"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Instagram"
@@ -37,7 +37,7 @@ export default function Footer({ onOpenBooking }) {
                 </svg>
               </a>
               <a
-                href="https://wa.me/5511987654321"
+                href="https://wa.me/555181656799"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="WhatsApp"
@@ -66,10 +66,7 @@ export default function Footer({ onOpenBooking }) {
           <div className="space-y-3">
             <h4 className="text-white font-bold text-xs uppercase tracking-widest">Atendimento</h4>
             <p className="text-xs text-neutral-300">
-              Segunda a Sexta: <span className="text-white font-medium">09h00 às 20h00</span>
-            </p>
-            <p className="text-xs text-neutral-300">
-              Sábados: <span className="text-white font-medium">09h00 às 18h00</span>
+              Segunda a Sábado: <span className="text-white font-medium">09h00 às 20h00</span>
             </p>
             <div className="pt-3">
               <button

@@ -3,7 +3,7 @@ import React from 'react';
 export default function AboutSection() {
   const highlights = [
     {
-      title: 'Navalha & Toalha Quente',
+      title: 'Barboterapia',
       description: 'Barboterapia clássica com toalha aquecida, vapor de ozônio e óleos essenciais para uma pele impecável.',
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-yellow">
@@ -16,7 +16,7 @@ export default function AboutSection() {
     },
     {
       title: 'Mestres da Arte',
-      description: 'Equipe altamente treinada nas escolas clássicas e modernas, dominando desde o corte tradicional ao skin fade.',
+      description: 'Barbeiros excepcionais com técnicas aprimoradas, oferecendo os melhores cortes e serviços para o seu estilo.',
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
@@ -28,7 +28,7 @@ export default function AboutSection() {
     },
     {
       title: 'Hospitalidade & Conforto',
-      description: 'Café colombiano passado na hora, cerveja artesanal como cortesia e uma playlist curada para você relaxar.',
+      description: 'Cerveja gelada e produtos importados à venda, como guloseimas, snacks e cachaça diretamente da Colômbia, tudo com uma playlist curada para você relaxar.',
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-red">
           <path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8zM6 1v3M10 1v3M14 1v3" />
@@ -42,10 +42,8 @@ export default function AboutSection() {
 
   return (
     <section id="sobre" className="relative py-24 md:py-32 bg-dark-900 border-t border-white/5 overflow-hidden">
-      {/* Subtle background Colombia light streaks */}
-      <div className="absolute top-1/2 left-0 w-72 h-72 rounded-full bg-brand-yellow/5 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full bg-brand-blue/10 blur-[130px] pointer-events-none" />
-
+      {/* Cinematic Animated Atmosphere */}
+      
       <div className="max-w-7xl mx-auto px-6 md:px-12 relative z-10">
         
         {/* Section Header */}
@@ -61,9 +59,9 @@ export default function AboutSection() {
             </span>
           </h2>
           <p className="text-base md:text-lg text-neutral-400 leading-relaxed">
-            Nascida da paixão pela alfaiataria clássica dos cortes masculinos e do calor acolhedor latino, 
-            The Latin Barber's Club oferece muito mais que um corte: proporcionamos um ritual de autocuidado 
-            com precisão cirúrgica e atendimento de primeira classe.
+            Nascida da autêntica cultura colombiana, a The Latin Barber's Club traz para você um ambiente e uma estética que respiram a essência da Colômbia. 
+            Nosso barbeiro mestre domina técnicas exclusivas e estilos colombianos consagrados para oferecer muito mais que um corte: proporcionamos um verdadeiro 
+            ritual de autocuidado com precisão cirúrgica e atendimento de primeira classe.
           </p>
         </div>
 
@@ -95,7 +93,7 @@ export default function AboutSection() {
         {/* Atmosphere Banner Image */}
         <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl h-64 md:h-80 group">
           <img
-            src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
+            src="/img_about.jpg"
             alt="Ambiente The Latin Barber's Club"
             className="w-full h-full object-cover object-center brightness-75 group-hover:scale-105 transition-transform duration-700"
           />
@@ -106,7 +104,7 @@ export default function AboutSection() {
                 O ambiente que você merece
               </h4>
               <p className="text-sm text-neutral-300">
-                Cadeiras vintage em couro legítimo, iluminação âmbar relaxante e privacidade para você se desconectar da rotina.
+                Iluminação âmbar relaxante, privacidade para você se desconectar da rotina. Aproveite também para saborear uma cerveja gelada ou refrigerante.
               </p>
             </div>
           </div>

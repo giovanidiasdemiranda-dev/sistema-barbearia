@@ -81,17 +81,15 @@ export default {
         '300': '300ms',
       },
       animation: {
-        'fade-in': 'fadeIn 200ms cubic-bezier(0.23, 1, 0.32, 1) forwards',
-        'slide-up': 'slideUp 300ms cubic-bezier(0.23, 1, 0.32, 1) forwards',
-        'slide-down': 'slideDown 300ms cubic-bezier(0.23, 1, 0.32, 1) forwards',
-        'scale-in': 'scaleIn 200ms cubic-bezier(0.23, 1, 0.32, 1) forwards',
-        'stagger-1': 'slideUp 300ms 0ms cubic-bezier(0.23, 1, 0.32, 1) both',
-        'stagger-2': 'slideUp 300ms 50ms cubic-bezier(0.23, 1, 0.32, 1) both',
         'fade-in': 'fade-in 0.3s cubic-bezier(0.23, 1, 0.32, 1) forwards',
         'slide-up': 'slide-up 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards',
         'slide-down': 'slide-down 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards',
         'scale-in': 'scale-in 0.3s cubic-bezier(0.23, 1, 0.32, 1) forwards',
         'shimmer': 'shimmer 2s linear infinite',
+        'clip-reveal': 'clip-reveal 0.8s cubic-bezier(0.77, 0, 0.175, 1) forwards',
+        'breathing': 'breathing 15s ease-in-out infinite',
+        'breathing-delayed': 'breathing 15s ease-in-out 5s infinite',
+        'breathing-delayed-2': 'breathing 15s ease-in-out 10s infinite',
       },
       keyframes: {
         'fade-in': {
@@ -110,12 +108,21 @@ export default {
           '0%': { opacity: '0', transform: 'scale(0.95)' },
           '100%': { opacity: '1', transform: 'scale(1)' },
         },
+        'clip-reveal': {
+          '0%': { clipPath: 'inset(0 100% 0 0)', opacity: '0' },
+          '100%': { clipPath: 'inset(0 0 0 0)', opacity: '1' },
+        },
         'shimmer': {
           '100%': { transform: 'translateX(100%)' },
         },
         'pulseGlow': {
           '0%, 100%': { boxShadow: '0 0 10px rgba(245,197,24,0.2)' },
           '50%': { boxShadow: '0 0 30px rgba(245,197,24,0.5)' },
+        },
+        'breathing': {
+          '0%, 100%': { transform: 'scale(1) translate(0, 0)', opacity: '0.05' },
+          '33%': { transform: 'scale(1.2) translate(80px, -100px)', opacity: '0.15' },
+          '66%': { transform: 'scale(0.8) translate(-60px, 60px)', opacity: '0.25' },
         },
       },
       backdropBlur: {

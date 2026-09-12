@@ -1,14 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { servicesApi, formatCurrency } from '../../lib/storage';
 
 export default function ServicesSection({ onBookService }) {
-  const services = servicesApi.getActive();
+  const [services, setServices] = useState(servicesApi.getActive());
+
+  useEffect(() => {
+    const handleUpdate = (e) => {
+      if (e.detail.key === 'tlbc_services') {
+        setServices(servicesApi.getActive());
+      }
+    };
+    window.addEventListener('tlbc_storage_update', handleUpdate);
+    return () => window.removeEventListener('tlbc_storage_update', handleUpdate);
+  }, []);
 
   return (
     <section id="servicos" className="relative py-24 md:py-32 bg-dark-950 border-t border-white/5 overflow-hidden">
-      {/* Ambient background glow */}
-      <div className="absolute top-1/3 -right-20 w-96 h-96 rounded-full bg-brand-yellow/10 blur-[150px] pointer-events-none" />
-
+      {/* Cinematic Animated Atmosphere */}
+      
       <div className="max-w-7xl mx-auto px-6 md:px-12 relative z-10">
         
         {/* Section Header */}
@@ -31,7 +40,7 @@ export default function ServicesSection({ onBookService }) {
         {/* Services Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {services.map((svc) => {
-            const isFeatured = svc.id === 'svc-2' || svc.id === 'svc-5';
+            const isFeatured = svc.id === 'svc-1' || svc.id === 'svc-16';
             return (
               <div
                 key={svc.id}
@@ -43,7 +52,7 @@ export default function ServicesSection({ onBookService }) {
               >
                 {isFeatured && (
                   <div className="absolute -top-3 right-6 px-3 py-1 rounded-full bg-brand-yellow text-dark-950 text-[10px] font-black uppercase tracking-wider shadow-md">
-                    {svc.id === 'svc-2' ? 'Mais Popular' : 'Experiência VIP'}
+                    {svc.id === 'svc-1' ? 'Mais Popular' : 'Experiência VIP'}
                   </div>
                 )}
 

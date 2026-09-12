@@ -8,6 +8,7 @@ import ReviewsSection from '../components/landing/ReviewsSection';
 import Footer from '../components/landing/Footer';
 import WhatsAppButton from '../components/ui/WhatsAppButton';
 
+
 import ShopCard from '../components/booking/ShopCard';
 import BarberCard from '../components/booking/BarberCard';
 import ServiceCard from '../components/booking/ServiceCard';
@@ -52,7 +53,7 @@ export default function BookingPage() {
   };
 
   return (
-    <div className="min-h-dvh bg-dark-950 font-sans relative overflow-x-hidden text-neutral-50 scroll-smooth">
+    <div className="min-h-dvh bg-dark-950 font-sans bg-gradient-to-b from-brand-red/10 via-brand-blue/10 to-brand-yellow/10 relative overflow-x-hidden text-neutral-50 scroll-smooth">
       {/* ─── COLOMBIA TRICOLOR TOP ACCENT BAR ────────────────────── */}
       <div className="fixed top-0 left-0 right-0 z-50 h-1.5 flex pointer-events-none shadow-[0_2px_15px_rgba(252,209,22,0.3)]">
         <div className="w-1/2 bg-brand-yellow" />
@@ -64,9 +65,7 @@ export default function BookingPage() {
       <Navbar onOpenBooking={() => handleOpenBooking()} />
 
       {/* ─── INTERCALATED COLOMBIAN ATMOSPHERE GLOWS ────────────── */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-brand-yellow/15 blur-[140px] pointer-events-none z-0" />
-      <div className="absolute top-1/4 -right-20 w-[460px] h-[460px] rounded-full bg-brand-blue/20 blur-[150px] pointer-events-none z-0" />
-      <div className="absolute top-2/3 left-1/4 w-[420px] h-[420px] rounded-full bg-brand-red/15 blur-[140px] pointer-events-none z-0" />
+
 
       {/* ─── HERO SECTION ────────────────────────────────────────── */}
       <section className="relative min-h-[90vh] flex flex-col justify-center pt-28 pb-20 overflow-hidden">
@@ -89,13 +88,14 @@ export default function BookingPage() {
           </div>
 
           {/* Headline */}
-          <h1
-            className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white uppercase tracking-tighter leading-tight mb-6 animate-slide-up"
-            style={{ animationDelay: '100ms', textShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
-          >
-            Agende<br />{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-yellow via-yellow-200 to-brand-yellow">
-              Seu Horário
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white uppercase tracking-tighter leading-tight mb-6" style={{ textShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
+            <span className="inline-block animate-slide-up opacity-0" style={{ animationDelay: '100ms' }}>Agende</span>
+            <br />
+            <span className="inline-block animate-slide-up opacity-0 text-transparent bg-clip-text bg-gradient-to-r from-brand-yellow via-yellow-200 to-brand-yellow" style={{ animationDelay: '300ms' }}>
+              Seu
+            </span>{' '}
+            <span className="inline-block animate-slide-up opacity-0 text-transparent bg-clip-text bg-gradient-to-r from-brand-yellow via-yellow-200 to-brand-yellow" style={{ animationDelay: '500ms' }}>
+              Horário
             </span>
           </h1>
 
@@ -140,14 +140,14 @@ export default function BookingPage() {
               className="flex items-center gap-2 px-4 py-2 rounded-xl border border-brand-yellow/30 bg-brand-yellow/10 text-brand-yellow shadow-[0_0_15px_rgba(252,209,22,0.15)] hover:bg-brand-yellow/20 transition-all"
             >
               <span className="w-2 h-2 rounded-full bg-brand-yellow" />
-              <MapPinIcon /> Sede Colômbia
+              <MapPinIcon /> Sede Costa e Silva
             </a>
             <a
               href="#unidades"
               className="flex items-center gap-2 px-4 py-2 rounded-xl border border-brand-blue/40 bg-brand-blue/20 text-blue-300 shadow-[0_0_15px_rgba(0,56,147,0.2)] hover:bg-brand-blue/30 transition-all"
             >
               <span className="w-2 h-2 rounded-full bg-brand-blue" />
-              <MapPinIcon /> Filial Central
+              <MapPinIcon /> Sede Mario Quintana
             </a>
             <button
               onClick={() => {

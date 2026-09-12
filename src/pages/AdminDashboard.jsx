@@ -7,6 +7,7 @@ import BarberManager from '../components/admin/BarberManager';
 import ServiceManager from '../components/admin/ServiceManager';
 import ScheduleManager from '../components/admin/ScheduleManager';
 import AppointmentList from '../components/admin/AppointmentList';
+import ReviewManager from '../components/admin/ReviewManager';
 import AdminFinance from './AdminFinance';
 
 const SECTION_TITLES = {
@@ -17,6 +18,7 @@ const SECTION_TITLES = {
   servicos:   { title: 'Serviços',        subtitle: 'Catálogo de serviços e preços' },
   horarios:   { title: 'Horários',        subtitle: 'Configure horários de funcionamento e folgas' },
   clientes:   { title: 'Clientes',        subtitle: 'Pesquise clientes e gerencie agendamentos' },
+  avaliacoes: { title: 'Avaliações',      subtitle: 'Gerencie os depoimentos dos clientes' },
 };
 
 export default function AdminDashboard() {
@@ -92,6 +94,7 @@ export default function AdminDashboard() {
             <Route path="servicos"   element={<ServiceManager />} />
             <Route path="horarios"   element={<ScheduleManager />} />
             <Route path="clientes"   element={<AppointmentList />} />
+            <Route path="avaliacoes" element={<ReviewManager />} />
           </Routes>
         </main>
       </div>
