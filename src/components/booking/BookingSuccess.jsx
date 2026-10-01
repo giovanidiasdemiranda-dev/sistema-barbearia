@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { formatDate, formatPrice, shopsApi, managementLink, whatsappLink } from '../../lib/storage';
+import { formatDate, formatPrice, shopsApi, managementLink, bookingWhatsappLink } from '../../lib/storage';
 
 export default function BookingSuccess({ appointment, barber, service, onNewBooking }) {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
   const shop = shopsApi.getById(appointment.shop_id);
   const link = managementLink(appointment.manageToken);
-  const message = 'Olá! Tenho um agendamento em ' + (shop?.name || appointment.shop_name) + ', dia ' + appointment.date.split('-').reverse().join('/') + ' às ' + appointment.start_time + ', com ' + (barber?.name || appointment.barber_name) + '. Meu nome é ' + appointment.client_name + '.';
   async function copyLink() {
     try { await navigator.clipboard.writeText(link); setCopied(true); setCopyError(false); }
     catch { setCopyError(true); }
@@ -19,9 +18,9 @@ export default function BookingSuccess({ appointment, barber, service, onNewBook
       <div><dt className="text-neutral-500">Serviço</dt><dd>{service?.name || appointment.service_name} · {formatPrice(appointment.price)}</dd></div>
       <div><dt className="text-neutral-500">Data e horário</dt><dd className="text-brand-yellow font-semibold">{formatDate(appointment.date)} · {appointment.start_time}</dd></div>
     </dl>
-    <p className="text-sm text-neutral-400">{appointment.notificationStatus === 'accepted' ? 'O aviso do agendamento foi encaminhado ao WhatsApp da unidade.' : 'A reserva está confirmada. O aviso por WhatsApp ainda não foi confirmado; você pode falar com a unidade pelo botão abaixo.'}</p>
+    <p className="text-sm text-neutral-400">A reserva foi salva. Envie a mensagem pronta no WhatsApp para avisar o barbeiro. Se a conversa não abrir, use o botão abaixo.</p>
     <div className="rounded-xl border border-dark-500 p-4 space-y-2"><p className="text-sm text-neutral-300">Guarde seu link privado para consultar ou cancelar. Quem tiver esse link poderá acessar sua reserva.</p><button onClick={copyLink} className="text-brand-yellow font-semibold text-sm underline">{copied ? 'Link copiado!' : 'Copiar link da minha reserva'}</button>{copyError && <input aria-label="Link privado da reserva" readOnly value={link} onFocus={e => e.target.select()} className="w-full p-2 text-xs bg-dark-700 text-white" />}</div>
-    <a href={whatsappLink(appointment.shop_id, message)} target="_blank" rel="noopener noreferrer" className="flex justify-center rounded-xl bg-green-600/20 border border-green-600/30 text-green-400 py-3 font-semibold">Falar com a unidade no WhatsApp</a>
+    <a href={bookingWhatsappLink(appointment)} className="flex justify-center rounded-xl bg-green-600/20 border border-green-600/30 text-green-400 py-3 font-semibold">Abrir mensagem para o barbeiro</a>
     <button onClick={onNewBooking} className="w-full py-3 rounded-xl bg-dark-700 border border-dark-500 text-neutral-200">Fazer novo agendamento</button>
   </div>;
 }

@@ -19,7 +19,7 @@ import ClientForm from '../components/booking/ClientForm';
 import BookingSuccess from '../components/booking/BookingSuccess';
 import CancelBooking from '../components/booking/CancelBooking';
 import LoadingMap from '../components/ui/LoadingMap';
-import { shopsApi, barbersApi, servicesApi, appointmentsApi, formatDate } from '../lib/storage';
+import { shopsApi, barbersApi, servicesApi, appointmentsApi, formatDate, bookingWhatsappLink } from '../lib/storage';
 import { useToast } from '../lib/useToast';
 
 const STEPS = [
@@ -300,6 +300,10 @@ function BookingFlow({ onClose, presets = {} }) {
       const appointment = await appointmentsApi.create({ ...data, request_id: submission.current.id });
       setCompletedAppointment(appointment);
       setStep(6);
+      const whatsapp = bookingWhatsappLink(appointment);
+      if (whatsapp) {
+        try { window.location.assign(whatsapp); } catch { /* The saved booking remains accessible on this screen. */ }
+      }
     } catch (error) {
       if (error.status === 409) { setSelectedTime(''); setStep(4); addToast(error.message, 'error'); }
       throw error;

@@ -1,5 +1,4 @@
 import useStore from '../../lib/useStore';
-import NotificationStatus from './NotificationStatus';
 import React, { useState } from 'react';
 import { appointmentsApi, barbersApi, servicesApi, reviewsApi, formatPrice } from '../../lib/storage';
 import Button from '../ui/Button';
@@ -139,7 +138,6 @@ export default function AppointmentList() {
                     <span>{barber?.name}</span>
                     <span className="font-semibold text-neutral-300">{formatPrice(a.price ?? service?.price ?? 0)}</span>
                   </div>
-                  <NotificationStatus appointmentId={a.id} />
                 {a.status === 'scheduled' && (
                     <div className="flex gap-2 mt-3 pt-3 border-t border-dark-600">
                       <button onClick={() => handleCompleteClick(a)} className="flex-1 h-8 rounded-lg bg-green-500/10 text-green-400 border border-green-500/20 text-xs font-semibold hover:bg-green-500/20 transition-all btn-press">

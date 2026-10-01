@@ -72,7 +72,6 @@ export async function createBooking(db, input) {
       shop_name: shop.name, barber_name: barber.name, service_name: service.name, manage_hash: hash(manageToken) };
     writeData(db, tx, 'appointments', [...data.appointments, appointment]);
     tx.set(requestRef, { fingerprint, appointmentId: id, manageToken, expiresAt: new Date(Date.now() + 86400000) });
-    tx.set(db.collection('notifications').doc(id), { appointment_id: id, status: 'pending', attempts: 0, recipient: shop.phone, created_at: new Date().toISOString() });
     return { appointment: safeAppointment(appointment), manageToken, repeated: false };
   });
 }

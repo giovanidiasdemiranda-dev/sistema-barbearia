@@ -10,6 +10,13 @@ export function whatsappLink(shopId, text = 'Olá! Gostaria de agendar um horár
   return phone ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}` : null;
 }
 
+export function bookingWhatsappLink(appointment) {
+  const message = `Olá! Acabei de agendar na ${appointment.shop_name} com ${appointment.barber_name}.\n` +
+    `Cliente: ${appointment.client_name}\nWhatsApp: ${appointment.client_phone}\n` +
+    `Serviço: ${appointment.service_name}\nData: ${appointment.date.split('-').reverse().join('/')} às ${appointment.start_time}.`;
+  return whatsappLink(appointment.shop_id, message);
+}
+
 export function localDate(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date);
   const get = type => parts.find(p => p.type === type).value;

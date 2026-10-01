@@ -4,8 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { MemoryDb } from './memory-db.js';
 import { createBooking, readData, publicData, mutateData, manageBooking, slotsFor } from '../server/data.js';
 import { makeHandler } from '../server/app.js';
-import { notifyBooking } from '../server/notifications.js';
-import { availableSlots, localDate, whatsappLink } from '../shared/booking.js';
+import { availableSlots, localDate, whatsappLink, bookingWhatsappLink } from '../shared/booking.js';
 
 function input(overrides = {}) {
   let offset = 1;
@@ -72,6 +71,16 @@ test('unit phones and the São Paulo date remain correct after midnight UTC', ()
   const slots = availableSlots({ barberId: 'b', date: '2026-10-01', duration: 30, hours: [{ barber_id: 'b', day_of_week: 4, start_time: '09:00', end_time: '20:00' }], blocked: [], appointments: [], now: new Date('2026-10-02T01:30:00Z') });
   assert.deepEqual(slots, []);
 });
+test('booking message opens the selected unit with reservation details ready to send', () => {
+  for (const [shop_id, phone] of [['shop-1', '5551982266759'], ['shop-2', '5551981380060']]) {
+    const appointment = { shop_id, shop_name: 'Unidade', barber_name: 'Barbeiro', client_name: 'Cliente', client_phone: '51999999999', service_name: 'Corte', date: '2026-10-02', start_time: '10:00' };
+    const url = new URL(bookingWhatsappLink(appointment));
+    assert.equal(url.hostname, 'wa.me');
+    assert.equal(url.pathname, `/${phone}`);
+    const message = url.searchParams.get('text');
+    for (const detail of ['Unidade', 'Barbeiro', 'Cliente', '51999999999', 'Corte', '02/10/2026', '10:00']) assert.ok(message.includes(detail));
+  }
+});
 test('barber creation requires a unit and creates working hours in the same transaction', async () => {
   const db = new MemoryDb();
   await assert.rejects(mutateData(db, { resource: 'barbers', operation: 'create', input: { name: 'Teste' } }), { status: 400 });
@@ -130,24 +139,12 @@ test('repeated incorrect login attempts are rate limited', async () => {
   for (let i = 0; i < 8; i++) assert.equal((await call(handler, 'login', { body: { password: 'wrong' } })).status, 401);
   assert.equal((await call(handler, 'login', { body: { password: 'wrong' } })).status, 429);
 });
-test('notification failure does not turn a saved booking into an error', async () => {
+test('booking API saves without requesting an automatic WhatsApp notification', async () => {
   const db = new MemoryDb();
-  const handler = makeHandler(() => db, async () => { throw new Error('provider unavailable'); });
+  const handler = makeHandler(() => db);
   const result = await call(handler, 'booking', { body: input() });
   assert.equal(result.status, 201);
-  assert.equal(result.data.notificationStatus, 'pending');
   assert.equal((await readData(db)).appointments.length, 1);
-});
-test('notification uses the selected unit and repeated requests do not send twice', async () => {
-  const names = ['WHATSAPP_ACCESS_TOKEN', 'WHATSAPP_PHONE_NUMBER_ID', 'WHATSAPP_TEMPLATE_NAME', 'WHATSAPP_API_VERSION'];
-  const old = Object.fromEntries(names.map(n => [n, process.env[n]]));
-  Object.assign(process.env, { WHATSAPP_ACCESS_TOKEN: 'test', WHATSAPP_PHONE_NUMBER_ID: '123456', WHATSAPP_TEMPLATE_NAME: 'test_template', WHATSAPP_API_VERSION: 'v23.0' });
-  try {
-    const db = new MemoryDb(), a = await createBooking(db, input());
-    let sends = 0;
-    const send = async (_url, options) => { sends++; assert.equal(JSON.parse(options.body).to, '5551982266759'); return { ok: true, status: 200, json: async () => ({ messages: [{ id: 'test-id' }] }) }; };
-    assert.equal(await notifyBooking(db, a.appointment.id, send), 'accepted');
-    assert.equal(await notifyBooking(db, a.appointment.id, send), 'accepted');
-    assert.equal(sends, 1);
-  } finally { for (const n of names) { if (old[n] === undefined) delete process.env[n]; else process.env[n] = old[n]; } }
+  assert.equal(db.records.has('notifications/' + result.data.appointment.id), false);
+  assert.equal((await call(handler, 'retry', { body: { id: result.data.appointment.id } })).status, 404);
 });

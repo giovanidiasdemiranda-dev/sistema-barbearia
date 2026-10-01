@@ -152,7 +152,7 @@ export default function ClientForm({ booking, onConfirm }) {
             </>
           ) : (
             <>
-              Confirmar Agendamento
+              Confirmar e abrir WhatsApp
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m9 18 6-6-6-6" />
               </svg>
@@ -161,7 +161,7 @@ export default function ClientForm({ booking, onConfirm }) {
         </button>
 
         <p className="text-xs text-neutral-700 text-center">
-          Você pode consultar ou cancelar pelo link privado da reserva.
+          Ao confirmar, abriremos o WhatsApp com a mensagem pronta para o barbeiro. Toque em Enviar para avisá-lo.
         </p>
       </form>
     </div>

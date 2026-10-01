@@ -1,9 +1,8 @@
 import { getDb } from './db.js';
 import { fail, hash, token, passwordHash, checkPassword, authConfig, rateLimit, checkOrigin, requireAdmin, sessionCookie, logout } from './security.js';
 import { readData, publicData, adminData, slotsFor, createBooking, manageBooking, mutateData } from './data.js';
-import { notifyBooking, whatsappConfigured } from './notifications.js';
 
-export function makeHandler(dbProvider = getDb, sendNotification = notifyBooking) {
+export function makeHandler(dbProvider = getDb) {
   return async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -11,7 +10,7 @@ export function makeHandler(dbProvider = getDb, sendNotification = notifyBooking
     try {
       const url = new URL(req.url, 'http://localhost');
       const action = req.query?.action || url.searchParams.get('action') || (url.pathname === '/api/login' ? 'login' : '');
-      const methods = { data: 'GET', availability: 'GET', session: 'GET', login: 'POST', logout: 'POST', password: 'POST', booking: 'POST', manage: 'POST', mutate: 'POST', retry: 'POST' };
+      const methods = { data: 'GET', availability: 'GET', session: 'GET', login: 'POST', logout: 'POST', password: 'POST', booking: 'POST', manage: 'POST', mutate: 'POST' };
       if (!methods[action]) fail(404, 'Rota não encontrada.');
       if (methods[action] !== req.method) { res.setHeader('Allow', methods[action]); fail(405, 'Método não permitido.'); }
       if (req.method === 'POST') checkOrigin(req);
@@ -51,11 +50,6 @@ export function makeHandler(dbProvider = getDb, sendNotification = notifyBooking
         if (admin) await requireAdmin(db, req);
         const data = await readData(db);
         const result = admin ? adminData(data) : publicData(data);
-        if (admin) {
-          const jobs = await db.collection('notifications').get();
-          result.notifications = jobs.docs.map(d => ({ id: d.id, status: d.data().status, attempts: d.data().attempts }));
-          result.whatsappConfigured = whatsappConfigured();
-        }
         return res.status(200).json(result);
       }
       if (action === 'availability') {
@@ -65,20 +59,13 @@ export function makeHandler(dbProvider = getDb, sendNotification = notifyBooking
       if (action === 'booking') {
         await rateLimit(db, req, 'booking', 15);
         const result = await createBooking(db, body);
-        let notificationStatus = 'pending';
-        try { notificationStatus = await sendNotification(db, result.appointment.id); } catch { /* booking already committed */ }
-        return res.status(result.repeated ? 200 : 201).json({ ...result, notificationStatus });
+        return res.status(result.repeated ? 200 : 201).json(result);
       }
       if (action === 'manage') {
         await rateLimit(db, req, 'manage', 60);
         return res.status(200).json({ appointment: await manageBooking(db, body.token, body.cancel === true) });
       }
       await requireAdmin(db, req);
-      if (action === 'retry') {
-        if (typeof body.id !== 'string' || !/^[a-zA-Z0-9-]{1,100}$/.test(body.id)) fail(400, 'Agendamento inválido.');
-        await rateLimit(db, req, 'retry', 10);
-        return res.status(200).json({ status: await sendNotification(db, body.id) });
-      }
       return res.status(200).json({ item: await mutateData(db, body) });
     } catch (error) {
       const status = error.status || 503;

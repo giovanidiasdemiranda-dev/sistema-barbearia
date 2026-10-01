@@ -6,7 +6,7 @@ import handler from './server/app.js'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   for (const [key, value] of Object.entries(env)) {
-    if (/^(FIREBASE_|WHATSAPP_|ADMIN_PASSWORD$|APP_ORIGIN$)/.test(key) && !process.env[key]) process.env[key] = value
+    if (/^(FIREBASE_|ADMIN_PASSWORD$|APP_ORIGIN$)/.test(key) && !process.env[key]) process.env[key] = value
   }
   return {
   plugins: [react(), {

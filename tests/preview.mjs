@@ -6,10 +6,7 @@ import { makeHandler } from '../server/app.js';
 import { passwordHash } from '../server/security.js';
 const db = new MemoryDb();
 await db.collection('private').doc('admin').set({ password: passwordHash('somente-teste-local'), version: 'local-fixture' });
-const handler = makeHandler(() => db, async (_db, id) => {
-  await db.collection('notifications').doc(id).update({ status: 'not_configured' });
-  return 'not_configured';
-});
+const handler = makeHandler(() => db);
 const server = await createServer({ configFile: false, plugins: [react(), {
   name: 'test-api', configureServer(vite) {
     vite.middlewares.use(async (req, res, next) => {

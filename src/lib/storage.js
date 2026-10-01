@@ -1,8 +1,8 @@
 import { seedShops, seedBarbers, seedServices, generateWorkingHours } from '../../shared/catalog.js';
 import { shopContact, normalizePhone } from '../../shared/booking.js';
-export { localDate, whatsappLink } from '../../shared/booking.js';
+export { localDate, whatsappLink, bookingWhatsappLink } from '../../shared/booking.js';
 
-const empty = () => ({ shops: seedShops.map(shopContact), barbers: seedBarbers, services: seedServices, working_hours: seedBarbers.flatMap(b => generateWorkingHours(b.id)), blocked_slots: [], appointments: [], reviews: [], notifications: [] });
+const empty = () => ({ shops: seedShops.map(shopContact), barbers: seedBarbers, services: seedServices, working_hours: seedBarbers.flatMap(b => generateWorkingHours(b.id)), blocked_slots: [], appointments: [], reviews: [] });
 let cache = empty();
 export const storeSnapshot = () => cache;
 let adminMode = false;
@@ -75,7 +75,7 @@ export const appointmentsApi = { ...api('appointments'),
   getByPhone: phone => { const digits = normalizePhone(phone); return digits ? cache.appointments.filter(a => normalizePhone(a.client_phone) === digits) : []; },
   create: async data => {
     const result = await request('booking', data);
-    const appointment = { ...result.appointment, manageToken: result.manageToken, notificationStatus: result.notificationStatus };
+    const appointment = { ...result.appointment, manageToken: result.manageToken };
     try {
       const previous = savedBookings().filter(a => a.id !== appointment.id);
       localStorage.setItem('tlbc_my_bookings', JSON.stringify([...previous, { id: appointment.id, token: result.manageToken }].slice(-30)));
@@ -85,8 +85,6 @@ export const appointmentsApi = { ...api('appointments'),
   cancel: id => mutate('appointments', 'update', id, { status: 'cancelled' }),
 };
 export const reviewsApi = { ...api('reviews'), getAll: () => [...cache.reviews].sort((a,b) => new Date(b.created_at) - new Date(a.created_at)) };
-export const notificationInfo = () => ({ configured: cache.whatsappConfigured, items: cache.notifications || [] });
-export async function retryNotification(id) { const result = await request('retry', { id }); await refreshData(); return result; }
 export async function getAvailableSlots(barberId, date, serviceId) { return (await request('availability', undefined, { barber: barberId, date, service: serviceId })).slots; }
 export function savedBookings() { try { const data = JSON.parse(localStorage.getItem('tlbc_my_bookings') || '[]'); return Array.isArray(data) ? data.filter(a => /^[a-f0-9]{64}$/.test(a.token || '')) : []; } catch { return []; } }
 export async function manageBooking(token, cancel = false) { return (await request('manage', { token, cancel })).appointment; }

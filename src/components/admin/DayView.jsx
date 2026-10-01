@@ -1,5 +1,4 @@
 import useStore from '../../lib/useStore';
-import NotificationStatus from './NotificationStatus';
 import React, { useState } from 'react';
 import { localDate, calendarDate, appointmentsApi, barbersApi, servicesApi, reviewsApi, formatDate, formatPrice } from '../../lib/storage';
 import { useToast } from '../../lib/useToast';
@@ -144,7 +143,6 @@ export default function DayView() {
                   </div>
                 </div>
 
-                <NotificationStatus appointmentId={a.id} />
                 {a.status === 'scheduled' && (
                   <div className="flex gap-2 pt-3 border-t border-dark-600">
                     <button
