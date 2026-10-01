@@ -6,13 +6,18 @@ export default function ReviewModal({ isOpen, onClose, onSubmit, clientName, bar
   const [rating, setRating] = useState(5);
   const [text, setText] = useState('');
 
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit({ rating, text });
-    setRating(5);
-    setText('');
+    if (saving) return;
+    setSaving(true); setError('');
+    try { await onSubmit({ rating, text }); setRating(5); setText(''); }
+    catch (err) { setError(err.message); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -57,7 +62,8 @@ export default function ReviewModal({ isOpen, onClose, onSubmit, clientName, bar
           />
         </div>
 
-        <Button type="submit" variant="primary" fullWidth className="h-12 text-base font-bold shadow-lg shadow-brand-yellow/20">
+        {error && <p role="alert" className="text-red-300 text-sm">{error}</p>}
+        <Button disabled={saving} type="submit" variant="primary" fullWidth className="h-12 text-base font-bold shadow-lg shadow-brand-yellow/20">
           Confirmar e Enviar
         </Button>
       </form>

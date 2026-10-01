@@ -1,5 +1,5 @@
 import React from 'react';
-import { shopsApi } from '../../lib/storage';
+import { shopsApi, formatPhone, whatsappLink } from '../../lib/storage';
 
 export default function UnitsSection({ onBookShop }) {
   // Sort alphabetically so "Costa e Silva" appears before "Mario Quintana"
@@ -13,7 +13,6 @@ export default function UnitsSection({ onBookShop }) {
       flagColor: 'bg-brand-yellow',
       borderColor: 'border-brand-yellow/30',
       hours: 'Seg a Sáb: 09h00 às 20h00',
-      phone: '(51) 8165-6799',
     },
     'shop-2': {
       image: '/img_hq.jpg', // Sede Costa e Silva agora tem a img_hq.jpg
@@ -21,12 +20,11 @@ export default function UnitsSection({ onBookShop }) {
       flagColor: 'bg-brand-blue',
       borderColor: 'border-brand-blue/30',
       hours: 'Seg a Sáb: 09h00 às 20h00',
-      phone: '(51) 8165-6799',
     },
   };
 
   const isShopOpen = () => {
-    const now = new Date();
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
     const day = now.getDay();
     const hour = now.getHours();
     if (day === 0) return false; // Fechado domingo
@@ -113,7 +111,7 @@ export default function UnitsSection({ onBookShop }) {
 
                     <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-neutral-400 pt-3 border-t border-white/10 mb-4">
                       <span>🕒 {detail.hours}</span>
-                      <span>📞 {detail.phone}</span>
+                      <a href={whatsappLink(shop.id)} target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">📞 {formatPhone(shop.phone.slice(2))}</a>
                     </div>
 
                     <button

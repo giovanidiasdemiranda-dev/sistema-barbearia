@@ -1,44 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import useStore from '../../lib/useStore';
+import React, { useState } from 'react';
 import { barbersApi, workingHoursApi, blockedSlotsApi } from '../../lib/storage';
 import Button from '../ui/Button';
 import Modal from '../ui/Modal';
-import { useToast } from '../ui/Toast';
+import { useToast } from '../../lib/useToast';
 
 const DAYS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 
 export default function ScheduleManager() {
   const { addToast } = useToast();
-  const [barbers, setBarbers] = useState([]);
-  const [selectedBarberId, setSelectedBarberId] = useState(null);
-  const [workingHours, setWorkingHours] = useState([]);
-  const [blocked, setBlocked] = useState([]);
+  useStore();
+  const barbers = barbersApi.getActive();
+  const [selection, setSelectedBarberId] = useState(null);
+  const selectedBarberId = barbers.some(b => b.id === selection) ? selection : barbers[0]?.id;
+  const workingHours = workingHoursApi.getByBarber(selectedBarberId);
+  const blocked = blockedSlotsApi.getAll().filter(b => b.barber_id === selectedBarberId);
   const [isBlockOpen, setIsBlockOpen] = useState(false);
   const [blockForm, setBlockForm] = useState({ date: '', start_time: '', end_time: '', reason: '', full_day: false });
 
-  const loadBarbers = () => {
-    const b = barbersApi.getActive();
-    setBarbers(b);
-    if (b.length > 0 && !selectedBarberId) setSelectedBarberId(b[0].id);
-  };
-
-  const loadSchedule = () => {
-    if (!selectedBarberId) return;
-    setWorkingHours(workingHoursApi.getByBarber(selectedBarberId));
-    setBlocked(blockedSlotsApi.getAll().filter(s => s.barber_id === selectedBarberId));
-  };
-
-  useEffect(loadBarbers, []);
-  useEffect(loadSchedule, [selectedBarberId]);
-
-  const handleHourChange = (id, field, value) => {
-    workingHoursApi.update(id, { [field]: value });
-    setWorkingHours(prev => prev.map(h => h.id === id ? { ...h, [field]: value } : h));
+  const handleHourChange = async (id, field, value) => {
+    try {
+    await workingHoursApi.update(id, { [field]: value });
     addToast('Horário atualizado', 'success');
+    } catch (error) { addToast(error.message, 'error'); }
   };
 
-  const handleAddBlock = () => {
+  const handleAddBlock = async () => {
+    try {
     if (!blockForm.date) { addToast('Data obrigatória', 'error'); return; }
-    blockedSlotsApi.create({
+    if (!blockForm.full_day && (!blockForm.start_time || !blockForm.end_time)) { addToast('Preencha o início e o fim ou marque dia inteiro.', 'error'); return; }
+    await blockedSlotsApi.create({
       barber_id: selectedBarberId,
       date: blockForm.date,
       start_time: blockForm.full_day ? null : blockForm.start_time || null,
@@ -48,13 +39,14 @@ export default function ScheduleManager() {
     addToast('Bloqueio adicionado', 'success');
     setIsBlockOpen(false);
     setBlockForm({ date: '', start_time: '', end_time: '', reason: '', full_day: false });
-    loadSchedule();
+    } catch (error) { addToast(error.message, 'error'); }
   };
 
-  const handleDeleteBlock = (id) => {
-    blockedSlotsApi.delete(id);
+  const handleDeleteBlock = async (id) => {
+    try {
+    await blockedSlotsApi.delete(id);
     addToast('Bloqueio removido', 'info');
-    loadSchedule();
+    } catch (error) { addToast(error.message, 'error'); }
   };
 
   const selectedBarber = barbers.find(b => b.id === selectedBarberId);

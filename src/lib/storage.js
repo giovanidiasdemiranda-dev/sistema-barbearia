@@ -1,485 +1,96 @@
-// Storage Layer — LocalStorage-based data persistence
-// Replace with Supabase when credentials are available
+import { seedShops, seedBarbers, seedServices, generateWorkingHours } from '../../shared/catalog.js';
+import { shopContact, normalizePhone } from '../../shared/booking.js';
+export { localDate, whatsappLink } from '../../shared/booking.js';
 
-const KEYS = {
-  BARBERS: 'tlbc_barbers',
-  SERVICES: 'tlbc_services',
-  APPOINTMENTS: 'tlbc_appointments',
-  WORKING_HOURS: 'tlbc_working_hours',
-  BLOCKED_SLOTS: 'tlbc_blocked_slots',
-  SHOPS: 'tlbc_shops',
-  REVIEWS: 'tlbc_reviews',
-};
-
-// ─── Seed Data ───────────────────────────────────────────────────
-const seedShops = [
-  { id: 'shop-1', name: 'Sede Mario Quintana', address: 'Estrada Martín Félix Berta 2392', is_active: true },
-  { id: 'shop-2', name: 'Sede Costa e Silva', address: 'Av. Dante Ângelo Pilla 206', is_active: true },
-];
-const seedBarbers = [
-  {
-    id: 'barber-1',
-    shop_id: 'shop-1',
-    name: 'Michael Rozo',
-    bio: 'Mestre em degradê e barboterapia.',
-    photo_url: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-4.0.3&auto=format&fit=crop&w=256&q=80',
-    initials: 'MR',
-    color: '#FCD116',
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'barber-2',
-    shop_id: 'shop-1',
-    name: 'René Brito',
-    bio: 'Especialista em cortes clássicos e design de barba.',
-    photo_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=256&q=80',
-    initials: 'RB',
-    color: '#003893',
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'barber-3',
-    shop_id: 'shop-2',
-    name: 'Arley Munhoz',
-    bio: 'Especialista em Nano pigmentação de barba.',
-    photo_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=256&q=80',
-    initials: 'AM',
-    color: '#CE1126',
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'barber-4',
-    shop_id: 'shop-2',
-    name: 'Guillerme',
-    bio: 'Cortes modernos e tendências. Do degradê ao nevou.',
-    photo_url: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?ixlib=rb-4.0.3&auto=format&fit=crop&w=256&q=80',
-    initials: 'G',
-    color: '#4CAF50',
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-];
-
-const seedServices = [
-  { id: 'svc-1', name: 'Corte Degradê', description: 'Corte degradê na máquina', price: 35, duration_minutes: 45, is_active: true },
-  { id: 'svc-2', name: 'Barba', description: 'Design e modelagem de barba', price: 25, duration_minutes: 30, is_active: true },
-  { id: 'svc-3', name: 'Barboterapia', description: 'Ritual completo com toalha quente', price: 35, duration_minutes: 45, is_active: true },
-  { id: 'svc-4', name: 'Corte Máquina', description: 'Corte simples na máquina', price: 25, duration_minutes: 30, is_active: true },
-  { id: 'svc-5', name: 'Sobrancelhas', description: 'Design e alinhamento', price: 10, duration_minutes: 15, is_active: true },
-  { id: 'svc-6', name: 'Limpeza Facial Simples', description: 'Limpeza e hidratação básica', price: 10, duration_minutes: 20, is_active: true },
-  { id: 'svc-7', name: 'Limpeza Facial Profunda', description: 'Limpeza completa com extração', price: 40, duration_minutes: 60, is_active: true },
-  { id: 'svc-8', name: 'Corte + Barba + Sobrancelhas', description: 'O combo completo do homem moderno', price: 60, duration_minutes: 90, is_active: true },
-  { id: 'svc-9', name: 'Corte + Sobrancelhas', description: 'Corte e alinhamento de sobrancelhas', price: 40, duration_minutes: 60, is_active: true },
-  { id: 'svc-10', name: 'Barba + Sobrancelhas', description: 'Design de barba e sobrancelhas', price: 30, duration_minutes: 45, is_active: true },
-  { id: 'svc-11', name: 'Pigmentação Cabelo', description: 'Coloração para cabelos masculinos', price: 15, duration_minutes: 30, is_active: true },
-  { id: 'svc-12', name: 'Pigm Barba', description: 'Coloração e preenchimento de barba', price: 15, duration_minutes: 30, is_active: true },
-  { id: 'svc-13', name: 'Pigmentação Cavanhaque', description: 'Coloração localizada no cavanhaque', price: 10, duration_minutes: 15, is_active: true },
-  { id: 'svc-14', name: 'Luzes', description: 'Luzes no cabelo masculino', price: 80, duration_minutes: 90, is_active: true },
-  { id: 'svc-15', name: 'Nevou', description: 'Platinado global masculino', price: 110, duration_minutes: 120, is_active: true },
-  { id: 'svc-16', name: 'Nano pigmentação barba', description: 'Feito exclusivamente pelo barbeiro Arley', price: 250, duration_minutes: 120, is_active: true },
-];
-
-// Working hours: 0=Sunday, 1=Monday, ..., 6=Saturday
-const generateWorkingHours = (barberId) => [
-  { id: `wh-${barberId}-0`, barber_id: barberId, day_of_week: 0, start_time: null, end_time: null, is_off: true },
-  { id: `wh-${barberId}-1`, barber_id: barberId, day_of_week: 1, start_time: '09:00', end_time: '20:00', is_off: false },
-  { id: `wh-${barberId}-2`, barber_id: barberId, day_of_week: 2, start_time: '09:00', end_time: '20:00', is_off: false },
-  { id: `wh-${barberId}-3`, barber_id: barberId, day_of_week: 3, start_time: '09:00', end_time: '20:00', is_off: false },
-  { id: `wh-${barberId}-4`, barber_id: barberId, day_of_week: 4, start_time: '09:00', end_time: '20:00', is_off: false },
-  { id: `wh-${barberId}-5`, barber_id: barberId, day_of_week: 5, start_time: '09:00', end_time: '20:00', is_off: false },
-  { id: `wh-${barberId}-6`, barber_id: barberId, day_of_week: 6, start_time: '09:00', end_time: '20:00', is_off: false },
-];
-
-// ─── Seed Appointments ──────────────────────────────────────────
-const seedAppointmentsData = [
-  // Week 1 of Sep (01 to 05) - All completed
-  { shop_id: 'shop-1', barber_id: 'barber-1', service_id: 'svc-1', price: 45, date: '2026-09-01', start_time: '10:00', end_time: '10:30', client_name: 'Marcos Paulo', client_phone: '(11) 98111-2233', status: 'completed' },
-  { shop_id: 'shop-1', barber_id: 'barber-2', service_id: 'svc-2', price: 75, date: '2026-09-01', start_time: '14:00', end_time: '15:00', client_name: 'Felipe Dias', client_phone: '(11) 98222-3344', status: 'completed' },
-  { shop_id: 'shop-2', barber_id: 'barber-3', service_id: 'svc-5', price: 100, date: '2026-09-02', start_time: '11:00', end_time: '12:30', client_name: 'Ricardo Gomes', client_phone: '(11) 98333-4455', status: 'completed' },
-  { shop_id: 'shop-1', barber_id: 'barber-1', service_id: 'svc-4', price: 55, date: '2026-09-02', start_time: '15:30', end_time: '16:15', client_name: 'João Vitor', client_phone: '(11) 98444-5566', status: 'completed' },
-  { shop_id: 'shop-1', barber_id: 'barber-2', service_id: 'svc-3', price: 40, date: '2026-09-03', start_time: '09:30', end_time: '10:00', client_name: 'Marcelo Lima', client_phone: '(11) 98555-6677', status: 'completed' },
-  { shop_id: 'shop-2', barber_id: 'barber-3', service_id: 'svc-2', price: 75, date: '2026-09-03', start_time: '16:00', end_time: '17:00', client_name: 'Alexandre Cruz', client_phone: '(11) 98666-7788', status: 'completed' },
-  { shop_id: 'shop-1', barber_id: 'barber-1', service_id: 'svc-5', price: 100, date: '2026-09-04', start_time: '10:30', end_time: '12:00', client_name: 'Pedro Henrique', client_phone: '(11) 98777-8899', status: 'completed' },
-  { shop_id: 'shop-1', barber_id: 'barber-2', service_id: 'svc-4', price: 55, date: '2026-09-04', start_time: '14:30', end_time: '15:15', client_name: 'Renan Castro', client_phone: '(11) 98888-9900', status: 'completed' },
-  { shop_id: 'shop-2', barber_id: 'barber-3', service_id: 'svc-2', price: 75, date: '2026-09-04', start_time: '17:00', end_time: '18:00', client_name: 'Danilo Silva', client_phone: '(11) 98999-0011', status: 'completed' },
-  { shop_id: 'shop-1', barber_id: 'barber-1', service_id: 'svc-2', price: 75, date: '2026-09-05', start_time: '09:00', end_time: '10:00', client_name: 'Gabriel Farias', client_phone: '(11) 97000-1122', status: 'completed' },
-  { shop_id: 'shop-1', barber_id: 'barber-2', service_id: 'svc-5', price: 100, date: '2026-09-05', start_time: '11:00', end_time: '12:30', client_name: 'Lucas Pires', client_phone: '(11) 97111-2233', status: 'completed' },
-  { shop_id: 'shop-2', barber_id: 'barber-3', service_id: 'svc-4', price: 55, date: '2026-09-05', start_time: '14:00', end_time: '14:45', client_name: 'Guilherme Neves', client_phone: '(11) 97222-3344', status: 'completed' },
-
-  // Week 2 (Current Week: 2026-09-07 to 2026-09-13)
-  // Monday (Today, 07/09)
-  { shop_id: 'shop-1', barber_id: 'barber-1', service_id: 'svc-2', price: 75, date: '2026-09-07', start_time: '09:30', end_time: '10:30', client_name: 'Lucas Santos', client_phone: '(11) 98765-4321', status: 'completed' },
-  { shop_id: 'shop-1', barber_id: 'barber-2', service_id: 'svc-4', price: 55, date: '2026-09-07', start_time: '11:00', end_time: '11:45', client_name: 'Matheus Costa', client_phone: '(11) 96543-2109', status: 'completed' },
-  { shop_id: 'shop-2', barber_id: 'barber-3', service_id: 'svc-5', price: 100, date: '2026-09-07', start_time: '14:00', end_time: '15:30', client_name: 'Gabriel Oliveira', client_phone: '(11) 97654-3210', status: 'completed' },
-  { shop_id: 'shop-1', barber_id: 'barber-1', service_id: 'svc-1', price: 45, date: '2026-09-07', start_time: '16:30', end_time: '17:00', client_name: 'Rodrigo Lima', client_phone: '(11) 95432-1098', status: 'scheduled' },
-  { shop_id: 'shop-1', barber_id: 'barber-2', service_id: 'svc-3', price: 40, date: '2026-09-07', start_time: '18:00', end_time: '18:30', client_name: 'Felipe Almeida', client_phone: '(11) 94321-0987', status: 'scheduled' },
-
-  // Tuesday (08/09)
-  { shop_id: 'shop-1', barber_id: 'barber-1', service_id: 'svc-5', price: 100, date: '2026-09-08', start_time: '10:00', end_time: '11:30', client_name: 'Bruno Carvalho', client_phone: '(11) 93210-9876', status: 'scheduled' },
-  { shop_id: 'shop-2', barber_id: 'barber-3', service_id: 'svc-4', price: 55, date: '2026-09-08', start_time: '13:30', end_time: '14:15', client_name: 'Thiago Pereira', client_phone: '(11) 92109-8765', status: 'scheduled' },
-  { shop_id: 'shop-1', barber_id: 'barber-2', service_id: 'svc-1', price: 45, date: '2026-09-08', start_time: '15:00', end_time: '15:30', client_name: 'André Silva', client_phone: '(11) 91098-7654', status: 'scheduled' },
-  { shop_id: 'shop-1', barber_id: 'barber-1', service_id: 'svc-2', price: 75, date: '2026-09-08', start_time: '17:00', end_time: '18:00', client_name: 'Vinícius Souza', client_phone: '(11) 90987-6543', status: 'scheduled' },
-
-  // Wednesday (09/09)
-  { shop_id: 'shop-1', barber_id: 'barber-2', service_id: 'svc-2', price: 75, date: '2026-09-09', start_time: '09:00', end_time: '10:00', client_name: 'Leonardo Martins', client_phone: '(11) 99876-5432', status: 'scheduled' },
-  { shop_id: 'shop-2', barber_id: 'barber-3', service_id: 'svc-5', price: 100, date: '2026-09-09', start_time: '11:30', end_time: '13:00', client_name: 'Eduardo Rocha', client_phone: '(11) 98123-4567', status: 'scheduled' },
-  { shop_id: 'shop-1', barber_id: 'barber-1', service_id: 'svc-1', price: 45, date: '2026-09-09', start_time: '14:00', end_time: '14:30', client_name: 'Guilherme Castro', client_phone: '(11) 97234-5678', status: 'scheduled' },
-  { shop_id: 'shop-1', barber_id: 'barber-1', service_id: 'svc-4', price: 55, date: '2026-09-09', start_time: '16:30', end_time: '17:15', client_name: 'Henrique Ramos', client_phone: '(11) 96345-6789', status: 'scheduled' },
-  { shop_id: 'shop-1', barber_id: 'barber-2', service_id: 'svc-3', price: 40, date: '2026-09-09', start_time: '18:30', end_time: '19:00', client_name: 'Gustavo Barbosa', client_phone: '(11) 95456-7890', status: 'scheduled' },
-
-  // Thursday (10/09)
-  { shop_id: 'shop-2', barber_id: 'barber-3', service_id: 'svc-2', price: 75, date: '2026-09-10', start_time: '10:00', end_time: '11:00', client_name: 'Lucas Moura', client_phone: '(11) 94567-8901', status: 'scheduled' },
-  { shop_id: 'shop-1', barber_id: 'barber-1', service_id: 'svc-4', price: 55, date: '2026-09-10', start_time: '14:00', end_time: '14:45', client_name: 'Fernando Dias', client_phone: '(11) 93678-9012', status: 'scheduled' },
-  { shop_id: 'shop-1', barber_id: 'barber-2', service_id: 'svc-5', price: 100, date: '2026-09-10', start_time: '16:00', end_time: '17:30', client_name: 'Marcelo Ribeiro', client_phone: '(11) 92789-0123', status: 'scheduled' },
-  { shop_id: 'shop-1', barber_id: 'barber-1', service_id: 'svc-1', price: 45, date: '2026-09-10', start_time: '18:00', end_time: '18:30', client_name: 'Caio Moreira', client_phone: '(11) 91890-1234', status: 'scheduled' },
-
-  // Friday (11/09)
-  { shop_id: 'shop-1', barber_id: 'barber-2', service_id: 'svc-5', price: 100, date: '2026-09-11', start_time: '09:30', end_time: '11:00', client_name: 'Arthur Nogueira', client_phone: '(11) 90901-2345', status: 'scheduled' },
-  { shop_id: 'shop-1', barber_id: 'barber-1', service_id: 'svc-2', price: 75, date: '2026-09-11', start_time: '11:30', end_time: '12:30', client_name: 'Daniel Farias', client_phone: '(11) 99012-3456', status: 'scheduled' },
-  { shop_id: 'shop-2', barber_id: 'barber-3', service_id: 'svc-4', price: 55, date: '2026-09-11', start_time: '14:00', end_time: '14:45', client_name: 'Renan Cardoso', client_phone: '(11) 98123-4560', status: 'scheduled' },
-  { shop_id: 'shop-1', barber_id: 'barber-1', service_id: 'svc-1', price: 45, date: '2026-09-11', start_time: '15:30', end_time: '16:00', client_name: 'Murilo Guimarães', client_phone: '(11) 97234-5601', status: 'scheduled' },
-  { shop_id: 'shop-1', barber_id: 'barber-2', service_id: 'svc-2', price: 75, date: '2026-09-11', start_time: '17:00', end_time: '18:00', client_name: 'Samuel Pires', client_phone: '(11) 96345-6712', status: 'scheduled' },
-  { shop_id: 'shop-1', barber_id: 'barber-1', service_id: 'svc-3', price: 40, date: '2026-09-11', start_time: '19:00', end_time: '19:30', client_name: 'Otávio Leal', client_phone: '(11) 95456-7823', status: 'scheduled' },
-
-  // Saturday (12/09)
-  { shop_id: 'shop-1', barber_id: 'barber-1', service_id: 'svc-5', price: 100, date: '2026-09-12', start_time: '09:00', end_time: '10:30', client_name: 'Igor Teodoro', client_phone: '(11) 94567-8934', status: 'scheduled' },
-  { shop_id: 'shop-1', barber_id: 'barber-2', service_id: 'svc-2', price: 75, date: '2026-09-12', start_time: '10:30', end_time: '11:30', client_name: 'Victor Hugo', client_phone: '(11) 93678-9045', status: 'scheduled' },
-  { shop_id: 'shop-2', barber_id: 'barber-3', service_id: 'svc-4', price: 55, date: '2026-09-12', start_time: '12:00', end_time: '12:45', client_name: 'Alex Sandro', client_phone: '(11) 92789-0156', status: 'scheduled' },
-  { shop_id: 'shop-1', barber_id: 'barber-1', service_id: 'svc-2', price: 75, date: '2026-09-12', start_time: '13:30', end_time: '14:30', client_name: 'Leandro Paiva', client_phone: '(11) 91890-1267', status: 'scheduled' },
-  { shop_id: 'shop-1', barber_id: 'barber-2', service_id: 'svc-5', price: 100, date: '2026-09-12', start_time: '15:00', end_time: '16:30', client_name: 'Cauã Freitas', client_phone: '(11) 90901-2378', status: 'scheduled' },
-  { shop_id: 'shop-2', barber_id: 'barber-3', service_id: 'svc-1', price: 45, date: '2026-09-12', start_time: '16:30', end_time: '17:00', client_name: 'Davi Lucca', client_phone: '(11) 99012-3489', status: 'scheduled' },
-
-  // Weeks 3 & 4 (14 to 28 Sep) - Pipeline
-  { shop_id: 'shop-1', barber_id: 'barber-1', service_id: 'svc-2', price: 75, date: '2026-09-15', start_time: '10:00', end_time: '11:00', client_name: 'Bernardo Ramos', client_phone: '(11) 98111-9988', status: 'scheduled' },
-  { shop_id: 'shop-1', barber_id: 'barber-2', service_id: 'svc-5', price: 100, date: '2026-09-16', start_time: '14:00', end_time: '15:30', client_name: 'Enzo Gabriel', client_phone: '(11) 98222-8877', status: 'scheduled' },
-  { shop_id: 'shop-2', barber_id: 'barber-3', service_id: 'svc-4', price: 55, date: '2026-09-18', start_time: '16:00', end_time: '16:45', client_name: 'Joaquim Silva', client_phone: '(11) 98333-7766', status: 'scheduled' },
-  { shop_id: 'shop-1', barber_id: 'barber-1', service_id: 'svc-5', price: 100, date: '2026-09-19', start_time: '11:00', end_time: '12:30', client_name: 'Felipe Santana', client_phone: '(11) 98444-6655', status: 'scheduled' },
-  { shop_id: 'shop-1', barber_id: 'barber-2', service_id: 'svc-2', price: 75, date: '2026-09-22', start_time: '15:00', end_time: '16:00', client_name: 'Nicolas Ferreira', client_phone: '(11) 98555-5544', status: 'scheduled' },
-  { shop_id: 'shop-2', barber_id: 'barber-3', service_id: 'svc-5', price: 100, date: '2026-09-25', start_time: '13:30', end_time: '15:00', client_name: 'Heitor Azevedo', client_phone: '(11) 98666-4433', status: 'scheduled' },
-  { shop_id: 'shop-1', barber_id: 'barber-1', service_id: 'svc-2', price: 75, date: '2026-09-26', start_time: '10:00', end_time: '11:00', client_name: 'Lorenzo Moreira', client_phone: '(11) 98777-3322', status: 'scheduled' },
-];
-
-const buildSeedAppointments = () => seedAppointmentsData.map((a, i) => ({
-  id: `seed-appt-${i + 1}`,
-  booking_code: `TLBC-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
-  created_at: '2026-09-01T08:00:00Z',
-  ...a,
-}));
-
-// ─── Init / Seed ─────────────────────────────────────────────────
-const memoryCache = {};
-
-function safeSet(key, data) {
-  memoryCache[key] = data;
-  try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch(e) {}
-}
-
-const VERSION_KEY = 'tlbc_version_5';
-export function initStorage() {
-  try {
-    if (!localStorage.getItem(VERSION_KEY)) {
-      localStorage.clear();
-      localStorage.setItem(VERSION_KEY, 'true');
-      safeSet(KEYS.SHOPS, seedShops);
-      safeSet(KEYS.BARBERS, seedBarbers);
-      safeSet(KEYS.SERVICES, seedServices);
-      const hours = seedBarbers.flatMap(b => generateWorkingHours(b.id));
-      safeSet(KEYS.WORKING_HOURS, hours);
-      safeSet(KEYS.APPOINTMENTS, buildSeedAppointments());
-      safeSet(KEYS.BLOCKED_SLOTS, []);
-      safeSet(KEYS.REVIEWS, []);
-      return;
-    }
-  } catch(e) {
-    // Se localStorage estiver totalmente bloqueado (Modo Anônimo Safari)
-    safeSet(KEYS.SHOPS, seedShops);
-    safeSet(KEYS.BARBERS, seedBarbers);
-    safeSet(KEYS.SERVICES, seedServices);
-    safeSet(KEYS.WORKING_HOURS, seedBarbers.flatMap(b => generateWorkingHours(b.id)));
-    safeSet(KEYS.APPOINTMENTS, buildSeedAppointments());
-    safeSet(KEYS.BLOCKED_SLOTS, []);
-    safeSet(KEYS.REVIEWS, []);
-    return;
-  }
-
-  try {
-    if (!localStorage.getItem(KEYS.SHOPS)) safeSet(KEYS.SHOPS, seedShops);
-    if (!localStorage.getItem(KEYS.BARBERS)) safeSet(KEYS.BARBERS, seedBarbers);
-    if (!localStorage.getItem(KEYS.SERVICES)) safeSet(KEYS.SERVICES, seedServices);
-    if (!localStorage.getItem(KEYS.WORKING_HOURS)) {
-      safeSet(KEYS.WORKING_HOURS, seedBarbers.flatMap(b => generateWorkingHours(b.id)));
-    }
-    if (!localStorage.getItem(KEYS.APPOINTMENTS)) safeSet(KEYS.APPOINTMENTS, []);
-    if (!localStorage.getItem(KEYS.BLOCKED_SLOTS)) safeSet(KEYS.BLOCKED_SLOTS, []);
-    if (!localStorage.getItem(KEYS.REVIEWS)) safeSet(KEYS.REVIEWS, []);
-  } catch(e) {}
-}
-
-// ─── Generic helpers ─────────────────────────────────────────────
-function getAll(key) {
-  try {
-    const val = localStorage.getItem(key);
-    if (val !== null) return JSON.parse(val);
-    return memoryCache[key] || [];
-  } catch {
-    return memoryCache[key] || [];
-  }
-}
-import { db } from './firebase';
-import { doc, setDoc, onSnapshot, collection } from 'firebase/firestore';
-
-export function initFirebaseSync() {
-  const keys = Object.values(KEYS);
-  keys.forEach(key => {
-    onSnapshot(
-      doc(db, 'app_data', key),
-      (snapshot) => {
-        if (snapshot.exists()) {
-          const data = snapshot.data().items || [];
-          safeSet(key, data);
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('tlbc_storage_update', { detail: { key } }));
-          }
-        }
-      },
-      (error) => {
-        console.error('Firebase sync error for', key, error);
-      }
-    );
-  });
-}
-
-function saveAll(key, data) {
-  safeSet(key, data);
-
-  setDoc(doc(db, 'app_data', key), { items: data }).catch((error) => {
-    console.error('Firebase save error:', error);
-  });
-
-  if (typeof window !== 'undefined') {
+const empty = () => ({ shops: seedShops.map(shopContact), barbers: seedBarbers, services: seedServices, working_hours: seedBarbers.flatMap(b => generateWorkingHours(b.id)), blocked_slots: [], appointments: [], reviews: [], notifications: [] });
+let cache = empty();
+export const storeSnapshot = () => cache;
+let adminMode = false;
+let refreshInFlight = null;
+let generation = 0;
+function updated() {
+  for (const key of ['tlbc_shops', 'tlbc_barbers', 'tlbc_services', 'tlbc_working_hours', 'tlbc_blocked_slots', 'tlbc_appointments', 'tlbc_reviews']) {
     window.dispatchEvent(new CustomEvent('tlbc_storage_update', { detail: { key } }));
   }
 }
-function genId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+export function initStorage() {
+  // Stop trusting legacy flags. Do not erase existing local data during migration.
+  try { localStorage.removeItem('tlbc_admin_auth'); localStorage.removeItem('tlbc_admin_password'); } catch { /* storage may be unavailable */ }
 }
-
-// ─── SHOPS ─────────────────────────────────────────────────────
-export const shopsApi = {
-  getAll: () => getAll(KEYS.SHOPS),
-  getActive: () => getAll(KEYS.SHOPS).filter(s => s.is_active),
-  getById: (id) => getAll(KEYS.SHOPS).find(s => s.id === id),
-};
-
-// ─── BARBERS ─────────────────────────────────────────────────────
-export const barbersApi = {
-  getAll: () => getAll(KEYS.BARBERS),
-  getActive: () => getAll(KEYS.BARBERS).filter(b => b.is_active),
-  getByShop: (shopId) => getAll(KEYS.BARBERS).filter(b => b.is_active && b.shop_id === shopId),
-  getById: (id) => getAll(KEYS.BARBERS).find(b => b.id === id),
-  create: (data) => {
-    const barbers = getAll(KEYS.BARBERS);
-    const newBarber = { id: genId(), is_active: true, created_at: new Date().toISOString(), ...data };
-    barbers.push(newBarber);
-    saveAll(KEYS.BARBERS, barbers);
-    // Add default working hours
-    const hours = getAll(KEYS.WORKING_HOURS);
-    const newHours = generateWorkingHours(newBarber.id);
-    saveAll(KEYS.WORKING_HOURS, [...hours, ...newHours]);
-    return newBarber;
-  },
-  update: (id, data) => {
-    const barbers = getAll(KEYS.BARBERS).map(b => b.id === id ? { ...b, ...data } : b);
-    saveAll(KEYS.BARBERS, barbers);
-    return barbers.find(b => b.id === id);
-  },
-  delete: (id) => {
-    saveAll(KEYS.BARBERS, getAll(KEYS.BARBERS).filter(b => b.id !== id));
-    saveAll(KEYS.WORKING_HOURS, getAll(KEYS.WORKING_HOURS).filter(h => h.barber_id !== id));
-  },
-};
-
-// ─── SERVICES ─────────────────────────────────────────────────────
-export const servicesApi = {
-  getAll: () => getAll(KEYS.SERVICES),
-  getActive: () => getAll(KEYS.SERVICES).filter(s => s.is_active),
-  getById: (id) => getAll(KEYS.SERVICES).find(s => s.id === id),
-  create: (data) => {
-    const services = getAll(KEYS.SERVICES);
-    const newService = { id: genId(), is_active: true, ...data };
-    services.push(newService);
-    saveAll(KEYS.SERVICES, services);
-    return newService;
-  },
-  update: (id, data) => {
-    const services = getAll(KEYS.SERVICES).map(s => s.id === id ? { ...s, ...data } : s);
-    saveAll(KEYS.SERVICES, services);
-    return services.find(s => s.id === id);
-  },
-  delete: (id) => saveAll(KEYS.SERVICES, getAll(KEYS.SERVICES).filter(s => s.id !== id)),
-};
-
-// ─── WORKING HOURS ─────────────────────────────────────────────────
-export const workingHoursApi = {
-  getByBarber: (barberId) => getAll(KEYS.WORKING_HOURS).filter(h => h.barber_id === barberId),
-  update: (id, data) => {
-    const hours = getAll(KEYS.WORKING_HOURS).map(h => h.id === id ? { ...h, ...data } : h);
-    saveAll(KEYS.WORKING_HOURS, hours);
-  },
-  isBarberWorkingOnDate: (barberId, date) => {
-    const dayOfWeek = new Date(date + 'T12:00:00').getDay();
-    const hours = getAll(KEYS.WORKING_HOURS).find(h => h.barber_id === barberId && h.day_of_week === dayOfWeek);
-    return hours && !hours.is_off;
-  },
-  getHoursForDate: (barberId, date) => {
-    const dayOfWeek = new Date(date + 'T12:00:00').getDay();
-    return getAll(KEYS.WORKING_HOURS).find(h => h.barber_id === barberId && h.day_of_week === dayOfWeek);
-  },
-};
-
-// ─── BLOCKED SLOTS ─────────────────────────────────────────────────
-export const blockedSlotsApi = {
-  getAll: () => getAll(KEYS.BLOCKED_SLOTS),
-  getByBarberAndDate: (barberId, date) =>
-    getAll(KEYS.BLOCKED_SLOTS).filter(b => b.barber_id === barberId && b.date === date),
-  create: (data) => {
-    const slots = getAll(KEYS.BLOCKED_SLOTS);
-    const newSlot = { id: genId(), ...data };
-    slots.push(newSlot);
-    saveAll(KEYS.BLOCKED_SLOTS, slots);
-    return newSlot;
-  },
-  delete: (id) => saveAll(KEYS.BLOCKED_SLOTS, getAll(KEYS.BLOCKED_SLOTS).filter(s => s.id !== id)),
-};
-
-// ─── APPOINTMENTS ─────────────────────────────────────────────────
-export const appointmentsApi = {
-  getAll: () => getAll(KEYS.APPOINTMENTS),
-  getByDate: (date) => getAll(KEYS.APPOINTMENTS).filter(a => a.date === date && a.status !== 'cancelled'),
-  getByBarberAndDate: (barberId, date) =>
-    getAll(KEYS.APPOINTMENTS).filter(a => a.barber_id === barberId && a.date === date && a.status !== 'cancelled'),
-  getByPhone: (phone) => {
-    const clean = phone.replace(/\D/g, '');
-    return getAll(KEYS.APPOINTMENTS).filter(a => a.client_phone.replace(/\D/g, '').includes(clean));
-  },
-  getByCode: (code) => getAll(KEYS.APPOINTMENTS).find(a => a.booking_code === code.toUpperCase()),
-  create: (data) => {
-    const appointments = getAll(KEYS.APPOINTMENTS);
-    const booking_code = generateBookingCode();
-    
-    // Auto-fetch price from service if not provided
-    let price = data.price;
-    if (price === undefined && data.service_id) {
-      const svc = servicesApi.getById(data.service_id);
-      if (svc) price = svc.price;
+export async function request(action, body, query = {}) {
+  const params = new URLSearchParams({ action, ...query });
+  const res = await fetch('/api?' + params, { method: body === undefined ? 'GET' : 'POST', credentials: 'same-origin', cache: 'no-store', headers: body === undefined ? {} : { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { const error = new Error(data.error || 'Não foi possível conectar ao servidor. Tente novamente.'); error.status = res.status; throw error; }
+  return data;
+}
+export async function refreshData() {
+  if (refreshInFlight) return refreshInFlight;
+  const version = generation;
+  refreshInFlight = request('data', undefined, adminMode ? { admin: '1' } : {}).then(data => {
+    if (version === generation) { cache = data; updated(); }
+  }).catch(error => {
+    if (error.status === 401 && adminMode && version === generation) {
+      cache = empty(); adminMode = false; generation++; updated(); window.dispatchEvent(new Event('tlbc_session_expired'));
     }
-
-    const newAppointment = {
-      id: genId(),
-      booking_code,
-      status: 'scheduled',
-      created_at: new Date().toISOString(),
-      price: price || 0,
-      ...data,
-    };
-    appointments.push(newAppointment);
-    saveAll(KEYS.APPOINTMENTS, appointments);
-    return newAppointment;
+    throw error;
+  }).finally(() => { refreshInFlight = null; });
+  return refreshInFlight;
+}
+export async function loadAdminData() {
+  await request('session');
+  if (refreshInFlight) await refreshInFlight.catch(() => {});
+  adminMode = true; generation++;
+  await refreshData();
+}
+export async function logoutAdmin() {
+  await request('logout', {});
+  adminMode = false; generation++; cache = empty(); updated();
+}
+export function initFirebaseSync() {
+  // Compatibility name: browsers now read only the server API, never Firestore directly.
+  const refresh = () => { if (!document.hidden) refreshData().catch(() => {}); };
+  const timer = setInterval(refresh, 15000);
+  window.addEventListener('focus', refresh);
+  return () => { clearInterval(timer); window.removeEventListener('focus', refresh); };
+}
+async function mutate(resource, operation, id, input) {
+  const { item } = await request('mutate', { resource, operation, id, input });
+  // The mutation has committed even if the following read temporarily fails.
+  try { await refreshData(); } catch { window.dispatchEvent(new CustomEvent('tlbc_toast', { detail: { type: 'info', message: 'Alteração salva. Atualize a página para recarregar a lista.' } })); }
+  return item;
+}
+const api = resource => ({ getAll: () => cache[resource] || [], getById: id => (cache[resource] || []).find(item => item.id === id),
+  create: input => mutate(resource, 'create', undefined, input), update: (id, input) => mutate(resource, 'update', id, input), delete: id => mutate(resource, 'delete', id) });
+export const shopsApi = { ...api('shops'), getActive: () => cache.shops.filter(s => s.is_active) };
+export const barbersApi = { ...api('barbers'), getActive: () => cache.barbers.filter(b => b.is_active), getByShop: id => cache.barbers.filter(b => b.is_active && b.shop_id === id) };
+export const servicesApi = { ...api('services'), getActive: () => cache.services.filter(s => s.is_active) };
+export const workingHoursApi = { ...api('working_hours'), getByBarber: id => cache.working_hours.filter(h => h.barber_id === id),
+  getHoursForDate: (id, date) => cache.working_hours.find(h => h.barber_id === id && h.day_of_week === new Date(date + 'T12:00:00Z').getUTCDay()),
+  isBarberWorkingOnDate: (id, date) => { const h = workingHoursApi.getHoursForDate(id, date); return h && !h.is_off; } };
+export const blockedSlotsApi = { ...api('blocked_slots'), getByBarberAndDate: (id, date) => cache.blocked_slots.filter(b => b.barber_id === id && b.date === date) };
+export const appointmentsApi = { ...api('appointments'),
+  getByDate: date => cache.appointments.filter(a => a.date === date && a.status !== 'cancelled'),
+  getByBarberAndDate: (id, date) => cache.appointments.filter(a => a.barber_id === id && a.date === date && a.status !== 'cancelled'),
+  getByPhone: phone => { const digits = normalizePhone(phone); return digits ? cache.appointments.filter(a => normalizePhone(a.client_phone) === digits) : []; },
+  create: async data => {
+    const result = await request('booking', data);
+    const appointment = { ...result.appointment, manageToken: result.manageToken, notificationStatus: result.notificationStatus };
+    try {
+      const previous = savedBookings().filter(a => a.id !== appointment.id);
+      localStorage.setItem('tlbc_my_bookings', JSON.stringify([...previous, { id: appointment.id, token: result.manageToken }].slice(-30)));
+    } catch { /* the private link remains available to copy on the success screen */ }
+    return appointment;
   },
-  update: (id, data) => {
-    const appointments = getAll(KEYS.APPOINTMENTS).map(a => a.id === id ? { ...a, ...data } : a);
-    saveAll(KEYS.APPOINTMENTS, appointments);
-    return appointments.find(a => a.id === id);
-  },
-  cancel: (id) => {
-    const appointments = getAll(KEYS.APPOINTMENTS).map(a =>
-      a.id === id ? { ...a, status: 'cancelled', cancelled_at: new Date().toISOString() } : a
-    );
-    saveAll(KEYS.APPOINTMENTS, appointments);
-  },
-  cancelByCode: (code) => {
-    const appointments = getAll(KEYS.APPOINTMENTS).map(a =>
-      a.booking_code === code.toUpperCase()
-        ? { ...a, status: 'cancelled', cancelled_at: new Date().toISOString() }
-        : a
-    );
-    saveAll(KEYS.APPOINTMENTS, appointments);
-  },
-  clearAll: () => {
-    saveAll(KEYS.APPOINTMENTS, []);
-  },
+  cancel: id => mutate('appointments', 'update', id, { status: 'cancelled' }),
 };
-
-// ─── Available Time Slots ─────────────────────────────────────────
-export function getAvailableSlots(barberId, date, durationMinutes) {
-  const workingHours = workingHoursApi.getHoursForDate(barberId, date);
-  if (!workingHours || workingHours.is_off) return [];
-
-  const { start_time, end_time } = workingHours;
-  if (!start_time || !end_time) return [];
-
-  // Check if date is blocked entirely
-  const blocked = blockedSlotsApi.getByBarberAndDate(barberId, date);
-  const appointments = appointmentsApi.getByBarberAndDate(barberId, date);
-
-  const slots = [];
-  const [startH, startM] = start_time.split(':').map(Number);
-  const [endH, endM] = end_time.split(':').map(Number);
-  const startMinutes = startH * 60 + startM;
-  const endMinutes = endH * 60 + endM;
-
-  for (let m = startMinutes; m + durationMinutes <= endMinutes; m += 30) {
-    const slotStart = m;
-    const slotEnd = m + durationMinutes;
-    const timeStr = `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
-
-    // Check if today — skip past times
-    const today = new Date().toISOString().split('T')[0];
-    if (date === today) {
-      const now = new Date();
-      const nowMinutes = now.getHours() * 60 + now.getMinutes();
-      if (slotStart <= nowMinutes + 30) continue;
-    }
-
-    // Check against existing appointments
-    const hasAppointment = appointments.some(a => {
-      const [aH, aM] = a.start_time.split(':').map(Number);
-      const [eH, eM] = a.end_time.split(':').map(Number);
-      const aStart = aH * 60 + aM;
-      const aEnd = eH * 60 + eM;
-      return slotStart < aEnd && slotEnd > aStart;
-    });
-
-    // Check against blocked slots
-    const isBlocked = blocked.some(b => {
-      if (!b.start_time) return true; // full day block
-      const [bH, bM] = b.start_time.split(':').map(Number);
-      const [beH, beM] = b.end_time.split(':').map(Number);
-      const bStart = bH * 60 + bM;
-      const bEnd = beH * 60 + beM;
-      return slotStart < bEnd && slotEnd > bStart;
-    });
-
-    slots.push({ time: timeStr, available: !hasAppointment && !isBlocked });
-  }
-
-  return slots;
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────
-function generateBookingCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
-}
+export const reviewsApi = { ...api('reviews'), getAll: () => [...cache.reviews].sort((a,b) => new Date(b.created_at) - new Date(a.created_at)) };
+export const notificationInfo = () => ({ configured: cache.whatsappConfigured, items: cache.notifications || [] });
+export async function retryNotification(id) { const result = await request('retry', { id }); await refreshData(); return result; }
+export async function getAvailableSlots(barberId, date, serviceId) { return (await request('availability', undefined, { barber: barberId, date, service: serviceId })).slots; }
+export function savedBookings() { try { const data = JSON.parse(localStorage.getItem('tlbc_my_bookings') || '[]'); return Array.isArray(data) ? data.filter(a => /^[a-f0-9]{64}$/.test(a.token || '')) : []; } catch { return []; } }
+export async function manageBooking(token, cancel = false) { return (await request('manage', { token, cancel })).appointment; }
+export function managementLink(token) { return window.location.origin + '/#reserva=' + token; }
 
 export function formatPrice(price) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price);
@@ -499,24 +110,13 @@ export function formatTime(timeStr) {
 
 export function formatPhone(value) {
   const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (!digits) return '';
+  if (digits.length === 10) return '(' + digits.slice(0,2) + ') ' + digits.slice(2,6) + '-' + digits.slice(6);
   if (digits.length <= 2) return `(${digits}`;
   if (digits.length <= 7) return `(${digits.slice(0,2)}) ${digits.slice(2)}`;
   if (digits.length <= 11) return `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
   return value;
 }
 
-// ─── REVIEWS ─────────────────────────────────────────────────────
-export const reviewsApi = {
-  getAll: () => getAll(KEYS.REVIEWS).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)),
-  create: (data) => {
-    const reviews = getAll(KEYS.REVIEWS);
-    const newReview = { id: genId(), created_at: new Date().toISOString(), ...data };
-    reviews.push(newReview);
-    saveAll(KEYS.REVIEWS, reviews);
-    return newReview;
-  },
-  delete: (id) => saveAll(KEYS.REVIEWS, getAll(KEYS.REVIEWS).filter(r => r.id !== id)),
-  clearAll: () => saveAll(KEYS.REVIEWS, []),
-};
 
-
+export function calendarDate(date) { return [date.getFullYear(), String(date.getMonth()+1).padStart(2,'0'), String(date.getDate()).padStart(2,'0')].join('-'); }

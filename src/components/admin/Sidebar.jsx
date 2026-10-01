@@ -1,5 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { logoutAdmin, request } from '../../lib/storage';
+import { useToast } from '../../lib/useToast';
 
 const navItems = [
   { to: '/admin/hoje',       label: 'Agenda do Dia',   icon: CalendarTodayIcon },
@@ -15,9 +17,10 @@ const navItems = [
 export default function Sidebar({ onClose }) {
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    localStorage.removeItem('tlbc_admin_auth');
-    navigate('/admin/login');
+  const { addToast } = useToast();
+  const handleLogout = async () => {
+    try { await logoutAdmin(); navigate('/admin/login'); }
+    catch (error) { addToast(error.message, 'error'); }
   };
 
   return (
@@ -59,33 +62,22 @@ export default function Sidebar({ onClose }) {
 
 function SidebarContent({ onLogout, isMobile, onClose }) {
   const [showPasswordModal, setShowPasswordModal] = React.useState(false);
+  const navigate = useNavigate();
+  const [currentPassword, setCurrentPassword] = React.useState('');
+  const [saving, setSaving] = React.useState(false);
   const [newPassword, setNewPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
   const [msg, setMsg] = React.useState({ type: '', text: '' });
 
-  const handleSavePassword = (e) => {
+  const handleSavePassword = async (e) => {
     e.preventDefault();
-    if (!newPassword || newPassword.length < 3) {
-      setMsg({ type: 'error', text: 'A senha deve ter pelo menos 3 caracteres.' });
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setMsg({ type: 'error', text: 'As senhas não coincidem.' });
-      return;
-    }
-    try {
-      localStorage.setItem('tlbc_admin_password', newPassword);
-      window.dispatchEvent(new CustomEvent('tlbc_toast', { detail: { type: 'success', message: 'Senha atualizada com sucesso!' } }));
-    } catch (e) {
-      console.error('Error saving password', e);
-      window.dispatchEvent(new CustomEvent('tlbc_toast', { detail: { type: 'error', message: 'Erro ao salvar a senha.' } }));
-    }
-    setTimeout(() => {
-      setShowPasswordModal(false);
-      setNewPassword('');
-      setConfirmPassword('');
-      setMsg({ type: '', text: '' });
-    }, 1200);
+    if (saving) return;
+    if (newPassword.length < 12) { setMsg({ type: 'error', text: 'Use pelo menos 12 caracteres.' }); return; }
+    if (newPassword !== confirmPassword) { setMsg({ type: 'error', text: 'As senhas não coincidem.' }); return; }
+    setSaving(true);
+    try { await request('password', { currentPassword, newPassword }); navigate('/admin/login', { replace: true }); }
+    catch (error) { setMsg({ type: 'error', text: error.message }); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -180,11 +172,14 @@ function SidebarContent({ onLogout, isMobile, onClose }) {
             </p>
 
             <form onSubmit={handleSavePassword} className="space-y-3">
+              <label className="block text-xs text-neutral-300">Senha atual<input type="password" required autoComplete="current-password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full h-11 px-4 mt-1 rounded-xl bg-dark-900 border border-dark-600 text-white" /></label>
               <div>
                 <label className="text-xs font-bold text-neutral-300 block mb-1">Nova Senha</label>
                 <input
                   type="password"
-                  placeholder="Digite a nova senha"
+                  placeholder="Pelo menos 12 caracteres"
+                  minLength={12}
+                  autoComplete="new-password"
                   value={newPassword}
                   onChange={e => setNewPassword(e.target.value)}
                   className="w-full h-11 px-4 rounded-xl bg-dark-900 border border-dark-600 text-white text-sm outline-none focus:border-brand-yellow"
@@ -195,7 +190,7 @@ function SidebarContent({ onLogout, isMobile, onClose }) {
                 <label className="text-xs font-bold text-neutral-300 block mb-1">Confirmar Nova Senha</label>
                 <input
                   type="password"
-                  placeholder="Repita a nova senha"
+                  placeholder="Repita a nova senha" autoComplete="new-password"
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
                   className="w-full h-11 px-4 rounded-xl bg-dark-900 border border-dark-600 text-white text-sm outline-none focus:border-brand-yellow"
@@ -219,7 +214,7 @@ function SidebarContent({ onLogout, isMobile, onClose }) {
                   Cancelar
                 </button>
                 <button
-                  type="submit"
+                  type="submit" disabled={saving}
                   className="flex-1 h-11 rounded-xl bg-brand-yellow text-dark-950 font-black text-xs uppercase hover:bg-yellow-400 shadow-md"
                 >
                   Salvar Senha

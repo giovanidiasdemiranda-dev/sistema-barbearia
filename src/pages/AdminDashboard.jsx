@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Sidebar, { BottomNav } from '../components/admin/Sidebar';
 import DayView from '../components/admin/DayView';
 import WeekView from '../components/admin/WeekView';
@@ -22,22 +22,9 @@ const SECTION_TITLES = {
 };
 
 export default function AdminDashboard() {
-  const navigate = useNavigate();
+  const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [currentSection, setCurrentSection] = useState('hoje');
-
-  // Auth guard
-  useEffect(() => {
-    if (localStorage.getItem('tlbc_admin_auth') !== 'true') {
-      navigate('/admin/login', { replace: true });
-    }
-  }, [navigate]);
-
-  // Detect current section from URL path
-  useEffect(() => {
-    const path = window.location.pathname.split('/admin/')[1] || 'hoje';
-    setCurrentSection(path);
-  });
+  const currentSection = location.pathname.split('/admin/')[1] || 'hoje';
 
   const section = SECTION_TITLES[currentSection] || SECTION_TITLES.hoje;
 

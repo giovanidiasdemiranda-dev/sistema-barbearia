@@ -1,13 +1,13 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 
 // ─── Toast Context ─────────────────────────────────────────────────
-const ToastContext = createContext(null);
+import { ToastContext } from '../../lib/useToast';
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
   const addToast = useCallback((message, type = 'info', duration = 4000) => {
-    const id = Date.now().toString();
+    const id = crypto.randomUUID();
     setToasts(prev => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
@@ -26,11 +26,6 @@ export function ToastProvider({ children }) {
   );
 }
 
-export function useToast() {
-  const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error('useToast must be used within ToastProvider');
-  return ctx;
-}
 
 // ─── Toast Component ───────────────────────────────────────────────
 const TOAST_ICONS = {

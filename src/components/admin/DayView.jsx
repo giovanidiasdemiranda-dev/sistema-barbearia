@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { appointmentsApi, barbersApi, servicesApi, reviewsApi, formatDate, formatPrice } from '../../lib/storage';
-import Button from '../ui/Button';
-import { useToast } from '../ui/Toast';
+import useStore from '../../lib/useStore';
+import NotificationStatus from './NotificationStatus';
+import React, { useState } from 'react';
+import { localDate, calendarDate, appointmentsApi, barbersApi, servicesApi, reviewsApi, formatDate, formatPrice } from '../../lib/storage';
+import { useToast } from '../../lib/useToast';
 import ReviewModal from '../ui/ReviewModal';
 
 const STATUS_MAP = {
@@ -11,35 +12,16 @@ const STATUS_MAP = {
 };
 
 export default function DayView() {
+  useStore();
   const { addToast } = useToast();
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [appointments, setAppointments] = useState([]);
-  const [barbers, setBarbers] = useState([]);
-  const [services, setServices] = useState([]);
+  const [date, setDate] = useState(localDate());
+  const appointments = appointmentsApi.getByDate(date);
+  const barbers = barbersApi.getAll();
+  const services = servicesApi.getAll();
   const [selectedBarberId, setSelectedBarberId] = useState('all');
   const [reviewAppt, setReviewAppt] = useState(null);
 
-  const load = () => {
-    const allBarbers = barbersApi.getAll();
-    const allServices = servicesApi.getAll();
-    const appts = appointmentsApi.getByDate(date);
-    setBarbers(allBarbers);
-    setServices(allServices);
-    setAppointments(appts);
-  };
 
-  useEffect(() => {
-    load();
-    const handleUpdate = () => load();
-    window.addEventListener('storage', handleUpdate);
-    window.addEventListener('tlbc_storage_update', handleUpdate);
-    const interval = setInterval(load, 2000);
-    return () => {
-      window.removeEventListener('storage', handleUpdate);
-      window.removeEventListener('tlbc_storage_update', handleUpdate);
-      clearInterval(interval);
-    };
-  }, [date]);
 
   const filtered = selectedBarberId === 'all'
     ? appointments
@@ -50,47 +32,31 @@ export default function DayView() {
   const getBarber = (id) => barbers.find(b => b.id === id);
   const getService = (id) => services.find(s => s.id === id);
 
-  const handleCancel = (id) => {
+  const handleCancel = async (id) => {
     if (!window.confirm('Cancelar este agendamento?')) return;
-    appointmentsApi.cancel(id);
-    addToast('Agendamento cancelado', 'info');
-    load();
+    try { await appointmentsApi.cancel(id); addToast('Agendamento cancelado', 'info'); } catch (error) { addToast(error.message, 'error'); }
   };
 
   const handleCompleteClick = (appt) => {
     setReviewAppt(appt);
   };
 
-  const handleReviewSubmit = ({ rating, text }) => {
-    // 1. Create the review
-    const barber = getBarber(reviewAppt.barber_id);
-    reviewsApi.create({
-      name: reviewAppt.client_name,
-      role: 'Cliente verificado', // Could be dynamic, but let's default for now
-      text: text,
-      rating: rating,
-      barber_name: barber?.name,
-      appointment_id: reviewAppt.id
-    });
-
-    // 2. Mark appointment as completed
-    appointmentsApi.update(reviewAppt.id, { status: 'completed' });
-    
+  const handleReviewSubmit = async ({ rating, text }) => {
+    await reviewsApi.create({ rating, text, appointment_id: reviewAppt.id });
     addToast('Atendimento concluído e avaliação salva!', 'success');
     setReviewAppt(null);
-    load();
   };
 
   const stats = {
     total: filtered.length,
     revenue: filtered.filter(a => a.status === 'scheduled' || a.status === 'completed')
-      .reduce((sum, a) => sum + (getService(a.service_id)?.price || 0), 0),
+      .reduce((sum, a) => sum + (a.price ?? getService(a.service_id)?.price ?? 0), 0),
   };
 
   const changeDate = (days) => {
     const d = new Date(date + 'T12:00:00');
     d.setDate(d.getDate() + days);
-    setDate(d.toISOString().split('T')[0]);
+    setDate(calendarDate(d));
   };
 
   return (
@@ -110,7 +76,7 @@ export default function DayView() {
           <button onClick={() => changeDate(1)} aria-label="Próximo dia" className="w-9 h-9 flex items-center justify-center rounded-xl bg-dark-700 border border-dark-500 text-neutral-400 hover:text-neutral-50 hover:border-dark-400 transition-all btn-press">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
           </button>
-          <button onClick={() => setDate(new Date().toISOString().split('T')[0])} className="h-9 px-3 rounded-xl bg-dark-700 border border-dark-500 text-neutral-400 hover:text-neutral-200 text-sm transition-all btn-press">
+          <button onClick={() => setDate(localDate())} className="h-9 px-3 rounded-xl bg-dark-700 border border-dark-500 text-neutral-400 hover:text-neutral-200 text-sm transition-all btn-press">
             Hoje
           </button>
         </div>
@@ -174,10 +140,11 @@ export default function DayView() {
                     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${statusInfo.className}`}>
                       {statusInfo.label}
                     </span>
-                    <span className="text-sm font-bold text-neutral-200">{formatPrice(service?.price)}</span>
+                    <span className="text-sm font-bold text-neutral-200">{formatPrice(a.price ?? service?.price ?? 0)}</span>
                   </div>
                 </div>
 
+                <NotificationStatus appointmentId={a.id} />
                 {a.status === 'scheduled' && (
                   <div className="flex gap-2 pt-3 border-t border-dark-600">
                     <button
@@ -214,7 +181,7 @@ export default function DayView() {
   );
 }
 
-function StatCard({ label, value, icon }) {
+function StatCard({ label, value }) {
   return (
     <div className="bg-dark-800 rounded-2xl border border-dark-600 p-4">
       <p className="text-xs text-neutral-500 mb-1">{label}</p>

@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { appointmentsApi, barbersApi, servicesApi, formatDate, formatPrice, formatPhone } from '../../lib/storage';
+import useStore from '../../lib/useStore';
+import NotificationStatus from './NotificationStatus';
+import React, { useState } from 'react';
+import { appointmentsApi, barbersApi, servicesApi, reviewsApi, formatPrice } from '../../lib/storage';
 import Button from '../ui/Button';
-import { useToast } from '../ui/Toast';
+import { useToast } from '../../lib/useToast';
 import ReviewModal from '../ui/ReviewModal';
 
 const STATUS_MAP = {
@@ -11,10 +13,11 @@ const STATUS_MAP = {
 };
 
 export default function AppointmentList() {
+  useStore();
   const { addToast } = useToast();
-  const [appointments, setAppointments] = useState([]);
-  const [barbers, setBarbers] = useState([]);
-  const [services, setServices] = useState([]);
+  const appointments = appointmentsApi.getAll();
+  const barbers = barbersApi.getAll();
+  const services = servicesApi.getAll();
   const [searchPhone, setSearchPhone] = useState('');
   const [filterBarberId, setFilterBarberId] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -22,24 +25,7 @@ export default function AppointmentList() {
   const [showCount, setShowCount] = useState(20);
   const [reviewAppt, setReviewAppt] = useState(null);
 
-  const load = () => {
-    setBarbers(barbersApi.getAll());
-    setServices(servicesApi.getAll());
-    setAppointments(appointmentsApi.getAll());
-  };
 
-  useEffect(() => {
-    load();
-    const handleUpdate = () => load();
-    window.addEventListener('storage', handleUpdate);
-    window.addEventListener('tlbc_storage_update', handleUpdate);
-    const interval = setInterval(load, 2000);
-    return () => {
-      window.removeEventListener('storage', handleUpdate);
-      window.removeEventListener('tlbc_storage_update', handleUpdate);
-      clearInterval(interval);
-    };
-  }, []);
 
   const getBarber = (id) => barbers.find(b => b.id === id);
   const getService = (id) => services.find(s => s.id === id);
@@ -62,32 +48,19 @@ export default function AppointmentList() {
       return db.localeCompare(da); // newest first
     });
 
-  const handleCancel = (id) => {
+  const handleCancel = async (id) => {
     if (!window.confirm('Cancelar este agendamento?')) return;
-    appointmentsApi.cancel(id);
-    addToast('Agendamento cancelado', 'info');
-    load();
+    try { await appointmentsApi.cancel(id); addToast('Agendamento cancelado', 'info'); } catch (error) { addToast(error.message, 'error'); }
   };
 
   const handleCompleteClick = (appt) => {
     setReviewAppt(appt);
   };
 
-  const handleReviewSubmit = ({ rating, text }) => {
-    const barber = getBarber(reviewAppt.barber_id);
-    reviewsApi.create({
-      name: reviewAppt.client_name,
-      role: 'Cliente verificado',
-      text: text,
-      rating: rating,
-      barber_name: barber?.name,
-      appointment_id: reviewAppt.id
-    });
-
-    appointmentsApi.update(reviewAppt.id, { status: 'completed' });
+  const handleReviewSubmit = async ({ rating, text }) => {
+    await reviewsApi.create({ rating, text, appointment_id: reviewAppt.id });
     addToast('Atendimento concluído e avaliação salva!', 'success');
     setReviewAppt(null);
-    load();
   };
 
   return (
@@ -158,18 +131,16 @@ export default function AppointmentList() {
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${statusInfo.className}`}>
                         {statusInfo.label}
                       </span>
-                      <span className="text-xs font-bold text-brand-yellow bg-brand-yellow/10 px-2 py-0.5 rounded-full font-mono">
-                        {a.booking_code}
-                      </span>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-neutral-400">
                     <span>{a.date} · {a.start_time}</span>
                     <span>{service?.name}</span>
                     <span>{barber?.name}</span>
-                    <span className="font-semibold text-neutral-300">{formatPrice(service?.price)}</span>
+                    <span className="font-semibold text-neutral-300">{formatPrice(a.price ?? service?.price ?? 0)}</span>
                   </div>
-                  {a.status === 'scheduled' && (
+                  <NotificationStatus appointmentId={a.id} />
+                {a.status === 'scheduled' && (
                     <div className="flex gap-2 mt-3 pt-3 border-t border-dark-600">
                       <button onClick={() => handleCompleteClick(a)} className="flex-1 h-8 rounded-lg bg-green-500/10 text-green-400 border border-green-500/20 text-xs font-semibold hover:bg-green-500/20 transition-all btn-press">
                         ✓ Concluído

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { appointmentsApi, barbersApi, servicesApi, formatPrice } from '../../lib/storage';
+import useStore from '../../lib/useStore';
+import React, { useState } from 'react';
+import { localDate, calendarDate, appointmentsApi, barbersApi, servicesApi, formatPrice } from '../../lib/storage';
 
 const DAYS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const MONTHS_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -11,7 +12,7 @@ function getWeekDates(baseDate) {
   for (let i = 0; i < 7; i++) {
     const nd = new Date(d);
     nd.setDate(d.getDate() - day + i);
-    dates.push(nd.toISOString().split('T')[0]);
+    dates.push(calendarDate(nd));
   }
   return dates;
 }
@@ -23,38 +24,21 @@ const STATUS_COLORS = {
 };
 
 export default function WeekView() {
-  const [baseDate, setBaseDate] = useState(new Date().toISOString().split('T')[0]);
-  const [appointments, setAppointments] = useState([]);
-  const [barbers, setBarbers] = useState([]);
-  const [services, setServices] = useState([]);
+  useStore();
+  const [baseDate, setBaseDate] = useState(localDate());
+  const appointments = getWeekDates(baseDate).flatMap(d => appointmentsApi.getByDate(d));
+  const barbers = barbersApi.getAll();
+  const services = servicesApi.getAll();
 
   const weekDates = getWeekDates(baseDate);
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDate();
 
-  const load = () => {
-    setBarbers(barbersApi.getAll());
-    setServices(servicesApi.getAll());
-    const all = weekDates.flatMap(d => appointmentsApi.getByDate(d));
-    setAppointments(all);
-  };
 
-  useEffect(() => {
-    load();
-    const handleUpdate = () => load();
-    window.addEventListener('storage', handleUpdate);
-    window.addEventListener('tlbc_storage_update', handleUpdate);
-    const interval = setInterval(load, 2000);
-    return () => {
-      window.removeEventListener('storage', handleUpdate);
-      window.removeEventListener('tlbc_storage_update', handleUpdate);
-      clearInterval(interval);
-    };
-  }, [baseDate]);
 
   const changeWeek = (delta) => {
     const d = new Date(baseDate + 'T12:00:00');
     d.setDate(d.getDate() + delta * 7);
-    setBaseDate(d.toISOString().split('T')[0]);
+    setBaseDate(calendarDate(d));
   };
 
   const getService = (id) => services.find(s => s.id === id);
@@ -84,7 +68,7 @@ export default function WeekView() {
         {weekDates.map((date, idx) => {
           const dayAppts = appointments.filter(a => a.date === date);
           const isToday = date === today;
-          const [y, m, d] = date.split('-').map(Number);
+          const [, m, d] = date.split('-').map(Number);
           return (
             <div key={date} className="flex flex-col gap-1">
               {/* Day header */}

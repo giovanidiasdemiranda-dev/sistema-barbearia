@@ -1,24 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import useStore from '../../lib/useStore';
+import React, { useState } from 'react';
 import { servicesApi, formatPrice } from '../../lib/storage';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
-import { useToast } from '../ui/Toast';
+import { useToast } from '../../lib/useToast';
 
 function EmptyForm() {
   return { name: '', description: '', price: '', duration_minutes: '30', is_active: true };
 }
 
 export default function ServiceManager() {
+  useStore();
   const { addToast } = useToast();
-  const [services, setServices] = useState([]);
+  const services = servicesApi.getAll();
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EmptyForm());
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
-  const load = () => setServices(servicesApi.getAll());
-  useEffect(load, []);
 
   const openCreate = () => { setEditingId(null); setForm(EmptyForm()); setErrors({}); setIsOpen(true); };
   const openEdit = (s) => {
@@ -40,25 +40,25 @@ export default function ServiceManager() {
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 300));
+    try {
     const data = { name: form.name, description: form.description, price: Number(form.price), duration_minutes: Number(form.duration_minutes), is_active: form.is_active };
     if (editingId) {
-      servicesApi.update(editingId, data);
+      await servicesApi.update(editingId, data);
       addToast('Serviço atualizado', 'success');
     } else {
-      servicesApi.create(data);
+      await servicesApi.create(data);
       addToast('Serviço criado', 'success');
     }
-    load();
+
     setIsOpen(false);
-    setLoading(false);
+    } catch (error) { addToast(error.message, 'error'); } finally { setLoading(false); }
   };
 
-  const handleDelete = (id, name) => {
+  const handleDelete = async (id, name) => {
     if (!window.confirm(`Excluir serviço "${name}"?`)) return;
-    servicesApi.delete(id);
+    try { await servicesApi.delete(id);
     addToast('Serviço excluído', 'info');
-    load();
+    } catch (error) { addToast(error.message, 'error'); }
   };
 
   const f = (field) => (e) => { setForm(p => ({ ...p, [field]: e.target.value })); if (errors[field]) setErrors(p => ({ ...p, [field]: undefined })); };

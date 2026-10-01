@@ -1,5 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { appointmentsApi, shopsApi, barbersApi, servicesApi, formatPrice } from '../lib/storage';
+import useStore from '../lib/useStore';
+import React, { useState, useMemo } from 'react';
+import { localDate, calendarDate, appointmentsApi, shopsApi, barbersApi, servicesApi, formatPrice } from '../lib/storage';
+
+function readGoal(key, fallback) { try { const raw = localStorage.getItem(key); return raw !== null && Number(raw) >= 0 ? Number(raw) : fallback; } catch { return fallback; } }
 
 // Helper: Get start (Sunday/Monday) and end of week
 function getWeekRange(dateStr) {
@@ -18,12 +21,12 @@ function getWeekRange(dateStr) {
   for (let i = 0; i < 7; i++) {
     const dayDate = new Date(start);
     dayDate.setDate(start.getDate() + i);
-    days.push(dayDate.toISOString().split('T')[0]);
+    days.push(calendarDate(dayDate));
   }
   
   return {
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
+    start: calendarDate(start),
+    end: calendarDate(end),
     days,
   };
 }
@@ -37,13 +40,14 @@ const WEEKDAY_NAMES = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
 export default function AdminFinance() {
   const [viewMode, setViewMode] = useState('week'); // 'week' | 'month'
-  const [shops, setShops] = useState([]);
+  useStore();
+  const shops = shopsApi.getAll();
   const [selectedShopId, setSelectedShopId] = useState('all');
-  const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const appointments = appointmentsApi.getAll().filter(a => a.status !== 'cancelled');
+  const loading = false;
 
   // Today reference
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = localDate();
   const [currentBaseDate, setCurrentBaseDate] = useState(todayStr);
 
   // Week boundaries
@@ -54,52 +58,22 @@ export default function AdminFinance() {
 
   // Weekly & Monthly Goals (Stored or default)
   const [weeklyGoal, setWeeklyGoal] = useState(() => {
-    return Number(localStorage.getItem('tlbc_weekly_goal')) || 4500;
+    return readGoal('tlbc_weekly_goal', 4500);
   });
   const [monthlyGoal, setMonthlyGoal] = useState(() => {
-    return Number(localStorage.getItem('tlbc_monthly_goal')) || 18000;
+    return readGoal('tlbc_monthly_goal', 18000);
   });
 
-  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [isGoalsModalOpen, setIsGoalsModalOpen] = useState(false);
   const [customWeeklyGoal, setCustomWeeklyGoal] = useState(weeklyGoal);
   const [customMonthlyGoal, setCustomMonthlyGoal] = useState(monthlyGoal);
 
   const [expandedDay, setExpandedDay] = useState(todayStr);
 
-  const loadAllAppointments = (isInitial = false) => {
-    if (isInitial) setLoading(true);
-    const all = appointmentsApi.getAll().filter(a => a.status !== 'cancelled');
-    setAppointments(all);
-    if (isInitial) setLoading(false);
-  };
-
-  useEffect(() => {
-    setShops(shopsApi.getAll());
-    loadAllAppointments(true);
-
-    const handleUpdate = () => loadAllAppointments(false);
-    window.addEventListener('storage', handleUpdate);
-    window.addEventListener('tlbc_storage_update', handleUpdate);
-    // Interval fallback removed/reduced to avoid any UX issues, event listeners handle realtime
-    const interval = setInterval(() => loadAllAppointments(false), 10000);
-    return () => {
-      window.removeEventListener('storage', handleUpdate);
-      window.removeEventListener('tlbc_storage_update', handleUpdate);
-      clearInterval(interval);
-    };
-  }, []);
-
-  const handleResetFinance = () => {
-    appointmentsApi.clearAll();
-    loadAllAppointments();
-    setIsResetConfirmOpen(false);
-  };
-
   const handleSaveGoals = (e) => {
     e.preventDefault();
-    const w = Number(customWeeklyGoal) || 0;
-    const m = Number(customMonthlyGoal) || 0;
+    const w = Math.max(0, Number(customWeeklyGoal) || 0);
+    const m = Math.max(0, Number(customMonthlyGoal) || 0);
     setWeeklyGoal(w);
     setMonthlyGoal(m);
     try {
@@ -286,7 +260,7 @@ export default function AdminFinance() {
   const changeWeek = (deltaWeeks) => {
     const d = new Date(currentBaseDate + 'T12:00:00');
     d.setDate(d.getDate() + deltaWeeks * 7);
-    setCurrentBaseDate(d.toISOString().split('T')[0]);
+    setCurrentBaseDate(calendarDate(d));
   };
 
   const changeMonth = (deltaMonths) => {
@@ -334,15 +308,7 @@ export default function AdminFinance() {
             Editar Metas
           </button>
 
-          <button
-            onClick={() => setIsResetConfirmOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 text-xs font-bold text-red-300 hover:text-red-100 transition-all btn-press flex items-center gap-2 shadow-sm"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-            </svg>
-            Zerar Financeiro
-          </button>
+
 
           <select
             value={selectedShopId}
@@ -874,43 +840,6 @@ export default function AdminFinance() {
           )}
         </>
       )}
-      {/* ─── MODAL: CONFIRMAR ZERAR FINANCEIRO ────────────────────── */}
-      {isResetConfirmOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md bg-dark-900 border border-red-500/30 rounded-2xl p-6 shadow-2xl animate-scale-in">
-            <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mb-4">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-              </svg>
-            </div>
-
-            <h3 className="text-xl font-black text-white mb-2">
-              Zerar todo o financeiro?
-            </h3>
-            <p className="text-sm text-neutral-300 mb-6 leading-relaxed">
-              Esta ação irá limpar os agendamentos e demonstrações fictícias. O seu faturamento voltará para <span className="text-brand-yellow font-bold">R$ 0,00</span>, permitindo que você inicie o controle com seus agendamentos e faturamento reais.
-            </p>
-
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setIsResetConfirmOpen(false)}
-                className="flex-1 py-3 rounded-xl bg-dark-800 hover:bg-dark-700 text-neutral-300 font-bold text-sm transition-all btn-press"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleResetFinance}
-                className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-sm transition-all btn-press shadow-lg shadow-red-950"
-              >
-                Sim, Zerar Tudo
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ─── MODAL: EDITAR METAS FINANCEIRAS ────────────────────────── */}
       {isGoalsModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">

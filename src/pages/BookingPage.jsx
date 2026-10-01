@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import useStore from '../lib/useStore';
+import React, { useState, useEffect, useRef } from 'react';
 import Navbar from '../components/landing/Navbar';
 import AboutSection from '../components/landing/AboutSection';
 import ServicesSection from '../components/landing/ServicesSection';
@@ -19,7 +20,7 @@ import BookingSuccess from '../components/booking/BookingSuccess';
 import CancelBooking from '../components/booking/CancelBooking';
 import LoadingMap from '../components/ui/LoadingMap';
 import { shopsApi, barbersApi, servicesApi, appointmentsApi, formatDate } from '../lib/storage';
-import { useToast } from '../components/ui/Toast';
+import { useToast } from '../lib/useToast';
 
 const STEPS = [
   { id: 1, label: 'Unidade' },
@@ -30,26 +31,25 @@ const STEPS = [
 ];
 
 export default function BookingPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [view, setView] = useState('landing'); // 'landing', 'booking_loading', 'booking', 'cancel', 'success'
+  useStore();
+  const [isModalOpen, setIsModalOpen] = useState(() => window.location.hash.startsWith('#reserva='));
+  const [view, setView] = useState(() => window.location.hash.startsWith('#reserva=') ? 'cancel' : 'landing'); // 'landing', 'booking_loading', 'booking', 'cancel', 'success'
   const [initialPresets, setInitialPresets] = useState({});
+  useEffect(() => {
+    const openLink = () => { if (window.location.hash.startsWith('#reserva=')) { setView('cancel'); setIsModalOpen(true); } };
+    window.addEventListener('hashchange', openLink);
+    return () => { window.removeEventListener('hashchange', openLink); };
+  }, []);
 
   const handleOpenBooking = (presets = {}) => {
     setInitialPresets(presets);
-    setView('booking_loading');
+    setView('booking');
     setIsModalOpen(true);
-    // Simulate loading map
-    setTimeout(() => {
-      setView('booking');
-    }, 1800);
   };
 
   const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setTimeout(() => {
-      setView('landing');
-      setInitialPresets({});
-    }, 300); // Wait for transition
+    setIsModalOpen(false); setView('landing'); setInitialPresets({});
+    if (window.location.hash.startsWith('#reserva=')) window.history.replaceState(null, '', window.location.pathname);
   };
 
   return (
@@ -147,7 +147,7 @@ export default function BookingPage() {
               className="flex items-center gap-2 px-4 py-2 rounded-xl border border-brand-blue/40 bg-brand-blue/20 text-blue-300 shadow-[0_0_15px_rgba(0,56,147,0.2)] hover:bg-brand-blue/30 transition-all"
             >
               <span className="w-2 h-2 rounded-full bg-brand-blue" />
-              <MapPinIcon /> Sede Mario Quintana
+              <MapPinIcon /> Sede Mário Quintana
             </a>
             <button
               onClick={() => {
@@ -249,93 +249,60 @@ export default function BookingPage() {
 function BookingFlow({ onClose, presets = {} }) {
   const { addToast } = useToast();
 
-  const [step, setStep] = useState(1);
-  const [shops, setShops] = useState([]);
-  const [services, setServices] = useState([]);
-  const [barbers, setBarbers] = useState([]);
-
-  const [selectedShop, setSelectedShop] = useState(presets.shop || null);
+  useStore();
+  const [step, setStep] = useState(() => presets.barber ? (presets.service ? 4 : 3) : presets.shop ? 2 : 1);
+  const shops = shopsApi.getActive();
+  const services = servicesApi.getActive();
+  const [selectedShop, setSelectedShop] = useState(() => presets.shop || (presets.barber ? shopsApi.getById(presets.barber.shop_id) : null));
   const [selectedBarber, setSelectedBarber] = useState(presets.barber || null);
   const [selectedService, setSelectedService] = useState(presets.service || null);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
-
   const [completedAppointment, setCompletedAppointment] = useState(null);
-
-  useEffect(() => {
-    const allShops = shopsApi.getActive();
-    const allServices = servicesApi.getActive();
-    setShops(allShops);
-    setServices(allServices);
-
-    if (presets.barber) {
-      const foundShop = allShops.find((s) => s.id === presets.barber.shop_id);
-      if (foundShop) {
-        setSelectedShop(foundShop);
-        setBarbers(barbersApi.getByShop(foundShop.id));
-      }
-      setSelectedBarber(presets.barber);
-      setStep(presets.service ? 4 : 3);
-    } else if (presets.shop) {
-      setSelectedShop(presets.shop);
-      setBarbers(barbersApi.getByShop(presets.shop.id));
-      setStep(presets.service ? 3 : 2);
-    } else if (presets.service) {
-      setSelectedService(presets.service);
-      setStep(1);
-    }
-  }, []);
+  const barbers = selectedShop ? barbersApi.getByShop(selectedShop.id) : [];
 
   const handleSelectShop = (shop) => {
+    setSelectedDate('');
+    setSelectedTime('');
     setSelectedShop(shop);
-    setBarbers(barbersApi.getByShop(shop.id));
     if (!selectedBarber || selectedBarber.shop_id !== shop.id) {
       setSelectedBarber(null);
     }
-    setTimeout(() => {
-      setStep(selectedService ? 4 : 2);
-    }, 250);
+    setStep(2);
   };
 
   const handleSelectBarber = (barber) => {
+    setSelectedDate('');
+    setSelectedTime('');
     setSelectedBarber(barber);
-    setTimeout(() => {
-      setStep(selectedService ? 4 : 3);
-    }, 250);
+    setStep(selectedService ? 4 : 3);
   };
 
   const handleSelectService = (service) => {
     setSelectedService(service);
     setSelectedDate('');
     setSelectedTime('');
-    setTimeout(() => setStep(4), 250);
+    setStep(4);
   };
 
   const handleSelectTime = (time) => {
     setSelectedTime(time);
-    setTimeout(() => setStep(5), 200);
+    setStep(5);
   };
 
+  const submission = useRef({});
   const handleConfirm = async ({ name, phone }) => {
+    if (!selectedShop || !selectedBarber || !selectedService || !selectedDate || !selectedTime) throw new Error('Revise os dados do agendamento.');
+    const data = { shop_id: selectedShop.id, barber_id: selectedBarber.id, service_id: selectedService.id, client_name: name, client_phone: phone, date: selectedDate, start_time: selectedTime };
+    const signature = JSON.stringify(data);
+    if (submission.current.signature !== signature) submission.current = { signature, id: crypto.randomUUID() };
     try {
-      const [h, m] = selectedTime.split(':').map(Number);
-      const endMinutes = h * 60 + m + selectedService.duration_minutes;
-      const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`;
-
-      const appointment = appointmentsApi.create({
-        shop_id: selectedShop.id,
-        barber_id: selectedBarber.id,
-        service_id: selectedService.id,
-        client_name: name,
-        client_phone: phone,
-        date: selectedDate,
-        start_time: selectedTime,
-        end_time: endTime,
-      });
+      const appointment = await appointmentsApi.create({ ...data, request_id: submission.current.id });
       setCompletedAppointment(appointment);
-      setStep(6); // 6 = success
-    } catch {
-      addToast('Erro ao criar agendamento.', 'error');
+      setStep(6);
+    } catch (error) {
+      if (error.status === 409) { setSelectedTime(''); setStep(4); addToast(error.message, 'error'); }
+      throw error;
     }
   };
 
@@ -419,7 +386,7 @@ function BookingFlow({ onClose, presets = {} }) {
         <div key={`step-${step}`} className="animate-slide-up" style={{ animationDuration: '400ms' }}>
           {step === 1 && (
             <div className="space-y-4">
-              {shops.map((shop, i) => (
+              {shops.filter(shop => selectedService?.id !== 'svc-16' || shop.id === 'shop-2').map((shop, i) => (
                 <div className="animate-stagger-item" style={{ animationDelay: `${i * 100}ms` }} key={shop.id}>
                   <ShopCard shop={shop} selected={selectedShop?.id === shop.id} onSelect={handleSelectShop} />
                 </div>
@@ -432,7 +399,7 @@ function BookingFlow({ onClose, presets = {} }) {
               {barbers.length === 0 ? (
                 <p className="text-center text-neutral-500 py-10">Nenhum barbeiro disponível nesta unidade.</p>
               ) : (
-                barbers.map((barber, i) => (
+                barbers.filter(barber => selectedService?.id !== 'svc-16' || barber.id === 'barber-3').map((barber, i) => (
                   <div className="animate-stagger-item" style={{ animationDelay: `${i * 100}ms` }} key={barber.id}>
                     <BarberCard barber={barber} selected={selectedBarber?.id === barber.id} onSelect={handleSelectBarber} />
                   </div>
@@ -443,7 +410,7 @@ function BookingFlow({ onClose, presets = {} }) {
 
           {step === 3 && (
             <div className="space-y-3">
-              {services.map((service, i) => (
+              {services.filter(service => service.id !== 'svc-16' || selectedBarber?.id === 'barber-3').map((service, i) => (
                 <div className="animate-stagger-item" style={{ animationDelay: `${i * 80}ms` }} key={service.id}>
                   <ServiceCard service={service} selected={selectedService?.id === service.id} onSelect={handleSelectService} />
                 </div>
@@ -453,10 +420,10 @@ function BookingFlow({ onClose, presets = {} }) {
 
           {step === 4 && (
             <div className="bg-dark-900/50 rounded-2xl border border-dark-600/50 p-4 shadow-inner-glow">
-              <Calendar barberId={selectedBarber?.id} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+              <Calendar barberId={selectedBarber?.id} selectedDate={selectedDate} onSelectDate={date => { setSelectedDate(date); setSelectedTime(''); }} />
               {selectedDate && (
                 <div className="mt-6 pt-6 border-t border-dark-600/50 animate-fade-in">
-                  <TimeSlots barberId={selectedBarber?.id} date={selectedDate} durationMinutes={selectedService?.duration_minutes} selectedTime={selectedTime} onSelectTime={handleSelectTime} />
+                  <TimeSlots serviceId={selectedService?.id} barberId={selectedBarber?.id} date={selectedDate} durationMinutes={selectedService?.duration_minutes} selectedTime={selectedTime} onSelectTime={handleSelectTime} />
                 </div>
               )}
             </div>

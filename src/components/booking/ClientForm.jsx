@@ -1,19 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { normalizePhone } from '../../../shared/booking.js';
 import { formatPrice, formatDate, formatPhone } from '../../lib/storage';
 
-export default function ClientForm({ booking, onConfirm, onBack }) {
+export default function ClientForm({ booking, onConfirm }) {
   const [name,    setName]    = useState('');
   const [phone,   setPhone]   = useState('');
   const [errors,  setErrors]  = useState({});
   const [loading, setLoading] = useState(false);
 
+  const submitting = useRef(false);
   const handlePhone = (e) => setPhone(formatPhone(e.target.value));
 
   const validate = () => {
     const errs = {};
     if (!name.trim() || name.trim().length < 2) errs.name  = 'Informe seu nome completo';
     const digits = phone.replace(/\D/g, '');
-    if (digits.length < 10)                      errs.phone = 'Informe um WhatsApp válido com DDD';
+    if (!normalizePhone(digits))                      errs.phone = 'Informe um WhatsApp válido com DDD';
     return errs;
   };
 
@@ -21,9 +23,12 @@ export default function ClientForm({ booking, onConfirm, onBack }) {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
+    if (submitting.current) return;
+    submitting.current = true;
     setLoading(true);
-    await new Promise(r => setTimeout(r, 600));
-    onConfirm({ name: name.trim(), phone });
+    try { await onConfirm({ name: name.trim(), phone }); }
+    catch (error) { setErrors(p => ({ ...p, submit: error.message || 'Não foi possível confirmar. Tente novamente.' })); }
+    finally { submitting.current = false; setLoading(false); }
   };
 
   const { shop, barber, service, date, time } = booking;
@@ -46,6 +51,7 @@ export default function ClientForm({ booking, onConfirm, onBack }) {
 
       {/* Form */}
       <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        {errors.submit && <p role="alert" className="text-sm text-red-400">{errors.submit}</p>}
         {/* Name */}
         <div>
           <label htmlFor="client-name" className="block text-xs font-semibold text-neutral-400 mb-1.5">
@@ -96,7 +102,7 @@ export default function ClientForm({ booking, onConfirm, onBack }) {
               value={phone}
               onChange={e => { handlePhone(e); if (errors.phone) setErrors(p => ({ ...p, phone: '' })); }}
               autoComplete="tel"
-              placeholder="(11) 99999-9999"
+              placeholder="(51) 99999-9999"
               aria-required="true"
               aria-invalid={!!errors.phone}
               aria-describedby={errors.phone ? 'phone-error' : undefined}
@@ -118,7 +124,7 @@ export default function ClientForm({ booking, onConfirm, onBack }) {
             </p>
           ) : (
             <p className="text-xs text-neutral-600 mt-1.5">
-              Usado apenas para confirmação do agendamento.
+              Usado pela unidade para falar com você sobre este agendamento.
             </p>
           )}
         </div>
@@ -155,7 +161,7 @@ export default function ClientForm({ booking, onConfirm, onBack }) {
         </button>
 
         <p className="text-xs text-neutral-700 text-center">
-          Ao confirmar, você concorda com nossa política de agendamento.
+          Você pode consultar ou cancelar pelo link privado da reserva.
         </p>
       </form>
     </div>

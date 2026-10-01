@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { workingHoursApi, blockedSlotsApi } from '../../lib/storage';
+import { localDate, workingHoursApi, blockedSlotsApi } from '../../lib/storage';
 
 const MONTHS       = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const WEEKDAYS     = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -17,7 +17,7 @@ function isDateAvailable(barberId, dateStr) {
 }
 
 export default function Calendar({ barberId, selectedDate, onSelectDate }) {
-  const today = new Date();
+  const today = new Date(localDate() + 'T12:00:00');
   const [viewYear,  setViewYear]  = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
 

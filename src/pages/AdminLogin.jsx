@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { request } from '../lib/storage';
 
-const ADMIN_PASSWORD = 'admin123';
+
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -14,19 +15,15 @@ export default function AdminLogin() {
     e.preventDefault();
     if (!password) { setError('Informe a senha'); return; }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 400));
-    const savedPassword = localStorage.getItem('tlbc_admin_password') || '1234';
-    if (password === savedPassword || password === 'admin123' || password === '1234') {
-      try {
-        localStorage.setItem('tlbc_admin_auth', 'true');
-      } catch (e) {
-        console.error('Error saving auth to localStorage', e);
-      }
+
+    try {
+      await request('login', { password });
       navigate('/admin');
-    } else {
-      setError('Senha incorreta. Tente novamente.');
-      setLoading(false);
+    } catch (error) {
+      setError(error.message);
       setPassword('');
+    } finally {
+      setLoading(false);
     }
   };
 

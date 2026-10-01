@@ -1,19 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { getAvailableSlots } from '../../lib/storage';
 
-export default function TimeSlots({ barberId, date, durationMinutes, selectedTime, onSelectTime }) {
-  const [slots, setSlots]     = useState([]);
-  const [loading, setLoading] = useState(true);
-
+export default function TimeSlots({ barberId, date, durationMinutes, serviceId, selectedTime, onSelectTime }) {
+  const [result, setResult] = useState({ key: '', slots: [], error: '' });
+  const [retry, setRetry] = useState(0);
+  const key = [barberId, date, serviceId, durationMinutes, retry].join(':');
+  const loading = result.key !== key;
+  const slots = loading ? [] : result.slots;
+  const error = loading ? '' : result.error;
   useEffect(() => {
-    if (!barberId || !date || !durationMinutes) return;
-    setLoading(true);
-    const t = setTimeout(() => {
-      setSlots(getAvailableSlots(barberId, date, durationMinutes));
-      setLoading(false);
-    }, 300);
-    return () => clearTimeout(t);
-  }, [barberId, date, durationMinutes]);
+    let active = true;
+    const load = async () => {
+      try {
+        const slots = barberId && date && serviceId ? await getAvailableSlots(barberId, date, serviceId) : [];
+        if (active) setResult({ key, slots, error: '' });
+      } catch (err) { if (active) setResult({ key, slots: [], error: err.message }); }
+    };
+    load(); const timer = setInterval(load, 15000);
+    return () => { active = false; clearInterval(timer); };
+  }, [barberId, date, serviceId, key]);
+  if (error) return <p role="alert" className="text-sm text-red-300">{error} <button type="button" className="underline" onClick={() => setRetry(n => n + 1)}>Tentar novamente</button></p>;
 
   const available = slots.filter(s => s.available);
   const unavailable = slots.filter(s => !s.available);

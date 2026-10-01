@@ -1,32 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { barbersApi } from '../../lib/storage';
+import useStore from '../../lib/useStore';
+import React, { useState } from 'react';
+import { barbersApi, shopsApi } from '../../lib/storage';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
-import { useToast } from '../ui/Toast';
+import { useToast } from '../../lib/useToast';
 
 const COLORS = ['#F5C518','#22C55E','#3B82F6','#EC4899','#8B5CF6','#F97316','#14B8A6','#EF4444'];
 
 function EmptyForm() {
-  return { name: '', bio: '', photo_url: '', color: '#F5C518', is_active: true };
+  return { shop_id: '', name: '', bio: '', photo_url: '', color: '#F5C518', is_active: true };
 }
 
 export default function BarberManager() {
+  useStore();
   const { addToast } = useToast();
-  const [barbers, setBarbers] = useState([]);
+  const barbers = barbersApi.getAll();
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EmptyForm());
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
-  const load = () => setBarbers(barbersApi.getAll());
-  useEffect(load, []);
 
   const openCreate = () => { setEditingId(null); setForm(EmptyForm()); setErrors({}); setIsOpen(true); };
-  const openEdit = (b) => { setEditingId(b.id); setForm({ name: b.name, bio: b.bio || '', photo_url: b.photo_url || '', color: b.color || '#F5C518', is_active: b.is_active }); setErrors({}); setIsOpen(true); };
+  const openEdit = (b) => { setEditingId(b.id); setForm({ shop_id: b.shop_id || '', name: b.name, bio: b.bio || '', photo_url: b.photo_url || '', color: b.color || '#F5C518', is_active: b.is_active }); setErrors({}); setIsOpen(true); };
 
   const validate = () => {
     const errs = {};
+    if (!form.shop_id) errs.shop_id = 'Selecione a unidade';
     if (!form.name.trim()) errs.name = 'Nome obrigatório';
     return errs;
   };
@@ -35,39 +36,39 @@ export default function BarberManager() {
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 300));
+    try {
     const initials = form.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
     if (editingId) {
-      barbersApi.update(editingId, { ...form, initials });
+      await barbersApi.update(editingId, { ...form, initials });
       addToast('Barbeiro atualizado', 'success');
     } else {
-      barbersApi.create({ ...form, initials });
+      await barbersApi.create({ ...form, initials });
       addToast('Barbeiro criado', 'success');
     }
-    load();
+
     setIsOpen(false);
-    setLoading(false);
+    } catch (error) { addToast(error.message, 'error'); } finally { setLoading(false); }
   };
 
-  const handleDelete = (id, name) => {
+  const handleDelete = async (id, name) => {
     if (!window.confirm(`Excluir barbeiro "${name}"? Esta ação não pode ser desfeita.`)) return;
-    barbersApi.delete(id);
+    try { await barbersApi.delete(id);
     addToast('Barbeiro excluído', 'info');
-    load();
+    } catch (error) { addToast(error.message, 'error'); }
   };
 
-  const toggleActive = (b) => {
-    barbersApi.update(b.id, { is_active: !b.is_active });
+  const toggleActive = async (b) => {
+    try { await barbersApi.update(b.id, { is_active: !b.is_active });
     addToast(`${b.name} ${b.is_active ? 'desativado' : 'ativado'}`, 'info');
-    load();
+    } catch (error) { addToast(error.message, 'error'); }
   };
 
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     
-    if (!file.type.startsWith('image/')) {
-      addToast('Por favor, selecione uma imagem válida.', 'error');
+    if (file.size > 5 * 1024 * 1024 || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      addToast('Selecione uma imagem JPG, PNG ou WebP de até 5 MB.', 'error');
       e.target.value = '';
       return;
     }
@@ -188,6 +189,7 @@ export default function BarberManager() {
           <Field label="Nome *" error={errors.name}>
             <input type="text" value={form.name} onChange={f('name')} placeholder="Nome completo" className={inputCls(errors.name)} />
           </Field>
+          <Field label="Unidade" error={errors.shop_id}><select aria-label="Unidade do barbeiro" value={form.shop_id} onChange={f('shop_id')} className={inputCls(errors.shop_id)}><option value="">Selecione a unidade</option>{shopsApi.getActive().map(shop => <option key={shop.id} value={shop.id}>{shop.name}</option>)}</select></Field>
           <Field label="Bio / Especialidade">
             <textarea value={form.bio} onChange={f('bio')} placeholder="Ex: Especialista em fade..." rows={2} className={`${inputCls()} resize-none`} />
           </Field>

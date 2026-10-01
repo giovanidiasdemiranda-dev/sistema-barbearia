@@ -1,39 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import useStore from '../../lib/useStore';
+import React from 'react';
 import { reviewsApi } from '../../lib/storage';
-import Button from '../ui/Button';
-import { useToast } from '../ui/Toast';
+import { useToast } from '../../lib/useToast';
 
 export default function ReviewManager() {
+  useStore();
   const { addToast } = useToast();
-  const [reviews, setReviews] = useState([]);
+  const reviews = reviewsApi.getAll();
 
-  const load = () => {
-    setReviews(reviewsApi.getAll());
-  };
 
-  useEffect(() => {
-    load();
-    window.addEventListener('storage', load);
-    window.addEventListener('tlbc_storage_update', load);
-    return () => {
-      window.removeEventListener('storage', load);
-      window.removeEventListener('tlbc_storage_update', load);
-    };
-  }, []);
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (!window.confirm('Tem certeza que deseja apagar esta avaliação?')) return;
-    reviewsApi.delete(id);
+    try { await reviewsApi.delete(id);
     addToast('Avaliação removida', 'info');
-    load();
+    } catch (error) { addToast(error.message, 'error'); }
   };
 
-  const handleClearAll = () => {
-    if (!window.confirm('CUIDADO: Tem certeza que deseja apagar TODAS as avaliações?')) return;
-    reviewsApi.clearAll();
-    addToast('Todas as avaliações foram removidas', 'info');
-    load();
-  };
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -42,11 +25,7 @@ export default function ReviewManager() {
           <h2 className="text-lg font-bold text-neutral-50">Gerenciar Avaliações</h2>
           <p className="text-sm text-neutral-400">Total de {reviews.length} depoimentos registrados.</p>
         </div>
-        {reviews.length > 0 && (
-          <Button variant="outline" onClick={handleClearAll} className="text-red-400 border-red-500/30 hover:bg-red-500/10">
-            Zerar Avaliações
-          </Button>
-        )}
+
       </div>
 
       {reviews.length === 0 ? (
