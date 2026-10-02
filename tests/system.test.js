@@ -20,6 +20,19 @@ test('two concurrent reservations cannot occupy the same barber and time', async
   assert.equal(results.find(r => r.status === 'rejected').reason.status, 409);
   assert.equal((await readData(db)).appointments.length, 1);
 });
+
+test('existing reservations from the old site keep their time slot occupied', async () => {
+  const db = new MemoryDb();
+  const body = input();
+  await db.collection('app_data').doc('tlbc_appointments').set({ items: [{
+    id: 'legacy-appointment', booking_code: 'LEGACY', shop_id: body.shop_id,
+    barber_id: body.barber_id, service_id: body.service_id, date: body.date,
+    start_time: body.start_time, end_time: '10:45', status: 'scheduled',
+    client_name: 'Cliente anterior', client_phone: '(51) 99999-9999', price: 35,
+  }] });
+  await assert.rejects(createBooking(db, body), { status: 409 });
+  assert.equal((await readData(db)).appointments.length, 1);
+});
 test('repeating the same request returns the same reservation and private link', async () => {
   const db = new MemoryDb(), body = input();
   const [a, b] = await Promise.all([createBooking(db, body), createBooking(db, body)]);
