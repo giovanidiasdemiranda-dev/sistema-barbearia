@@ -15,8 +15,8 @@ export function checkPassword(password, stored) {
 }
 export function checkOrigin(req) {
   const origin = req.headers.origin;
-  const host = process.env.APP_ORIGIN ? new URL(process.env.APP_ORIGIN).host : req.headers.host;
-  try { if (new URL(origin).host === host && ['http:', 'https:'].includes(new URL(origin).protocol)) return; } catch { /* reject missing or invalid origin */ }
+  const expected = process.env.APP_ORIGIN || `http://${req.headers.host}`;
+  try { if (new URL(origin).origin === new URL(expected).origin) return; } catch { /* reject missing or invalid origin */ }
   fail(403, 'Origem da solicitação não permitida.');
 }
 export async function rateLimit(db, req, scope, limit = 10, interval = 15 * 60 * 1000) {

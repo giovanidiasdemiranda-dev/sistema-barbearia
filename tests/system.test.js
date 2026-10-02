@@ -124,6 +124,7 @@ test('API rejects unauthenticated writes, forged cookies, foreign origins and un
   assert.equal((await call(handler, 'mutate', { body: { resource: 'barbers', operation: 'delete', id: 'barber-1' } })).status, 401);
   assert.equal((await call(handler, 'data', { query: '&admin=1', cookie: 'tlbc_session=' + 'a'.repeat(64) })).status, 401);
   assert.equal((await call(handler, 'booking', { body: input(), origin: 'https://other.example' })).status, 403);
+  assert.equal((await call(handler, 'booking', { body: input(), origin: 'https://localhost' })).status, 403);
   assert.equal((await call(handler, 'booking', { method: 'GET' })).status, 405);
   assert.equal((await call(handler, 'clearAll', { body: {} })).status, 404);
 });
